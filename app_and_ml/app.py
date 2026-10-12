@@ -20,7 +20,12 @@ except ModuleNotFoundError:
 # Import secondary pages from views/
 from views.cohort import render_cohort_view
 from views.clinical_docs import render_clinical_docs_view
-from views.architecture import render_architecture_view
+from views.architecture import render_architecture_view   
+
+try:
+    from signal_processing.video_pipeline import analyze_live_video
+except ImportError:
+    from video_pipeline import analyze_live_video
 
 # --- 1. Page Configuration ---
 st.set_page_config(
@@ -392,39 +397,30 @@ if nav_selection == "Telemetry":
         analyze_btn = st.button("EXECUTE CLINICAL TELEMETRY DECOMPOSITION")
         
         if analyze_btn:
-            with st.spinner("Executing Butterworth bandpass filter & systolic peak identification..."):
-                time.sleep(0.7)
-                
-            df = pd.read_csv("app_and_ml/data/PPG_Dataset.csv", header=None)
-            raw_signal = df.iloc[1, :1000].values.astype(float)
-            fs = 100.0
-            
-            clean_signal = bandpass_filter(raw_signal, fs=fs, lowcut=0.5, highcut=5.0)
-            trend = np.convolve(clean_signal, np.ones(30)/30, mode='same')
-            detrended = clean_signal - trend
-            peaks = detect_beats(detrended, fs=fs, max_bpm=140)
-            
-            if len(peaks) >= 2:
-                intervals_sec = np.diff(peaks) / fs
-                valid_intervals = intervals_sec[(intervals_sec >= 0.35) & (intervals_sec <= 1.35)]
-                measured_bpm = int(round(60.0 / float(np.median(valid_intervals)))) if len(valid_intervals) > 0 else 72
-            else:
-                measured_bpm = 72
+               import tempfile
+               suffix = os.path.splitext(uploaded_video.name)[1] or ".mp4"
+               with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                   tmp.write(uploaded_video.getbuffer())
+                   tmp_path = tmp.name
 
-            si, ri = compute_indices(clean_signal, peaks, fs=fs)
-            si_val = round(si, 2) if (si is not None and not np.isnan(si)) else 2.66
-            ri_val = round(ri, 2) if (ri is not None and not np.isnan(ri)) else 0.32
+               with st.spinner("Extracting optical signal from video and analyzing waveform..."):
+                   result = analyze_live_video(tmp_path)
+               os.remove(tmp_path)
 
-            st.session_state["telemetry_data"] = {
-                "raw_signal": raw_signal,
-                "clean_signal": clean_signal,
-                "peaks": peaks,
-                "fs": fs,
-                "measured_bpm": measured_bpm,
-                "si_val": si_val,
-                "ri_val": ri_val
-            }
-            st.session_state["telemetry_computed"] = True
+               if result["quality"] != "good" or result["stiffness_index"] is None:
+                   st.session_state["telemetry_computed"] = False
+                   st.error(result["message"] or "Could not measure a reliable pulse wave from this video. Please re-record.")
+               else:
+                   st.session_state["telemetry_data"] = {
+                       "raw_signal": np.array(result["raw_wave_array"]),
+                       "clean_signal": np.array(result["clean_wave_array"]),
+                       "peaks": np.array(result["beat_indices"]),
+                       "fs": result["sample_rate_hz"],
+                       "measured_bpm": int(round(result["heart_rate_bpm"])),
+                       "si_val": result["stiffness_index"],
+                       "ri_val": result["reflection_index"],
+                   }
+                   st.session_state["telemetry_computed"] = True
 
     if st.session_state["telemetry_computed"]:
         t_data = st.session_state["telemetry_data"]
