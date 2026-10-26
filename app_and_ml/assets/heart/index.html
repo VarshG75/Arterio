@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#030405">
+<title>ARTERIO 3D HEART.</title>
+<style>
+:root{color-scheme:dark;--bg:#020204;--white:#f0f3f4;--cyan:#61f2ff;--muted:#8a969d}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--white);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-x:hidden}
+#scene{position:fixed;inset:0;display:block;width:100vw;height:100vh;z-index:0;background:#020204;touch-action:pan-y;outline-offset:-4px}
+.scroll-track{height:480vh;pointer-events:none}.integrated{overflow:hidden}.integrated .scroll-track{height:100vh}
+.hero-ui{position:fixed;inset:0;z-index:3;pointer-events:none}.brand{position:absolute;left:5vw;top:170px;font:10px ui-monospace,monospace;letter-spacing:.18em;display:flex;gap:12px;align-items:center;color:#a0b0b8}.brand-mark{width:5px;height:5px;background:var(--cyan);border-radius:50%}
+.hero-copy{position:absolute;left:5vw;top:38%;max-width:560px}.kicker{font:10px/1.6 ui-monospace,monospace;letter-spacing:.18em;color:#83a2ac;text-transform:uppercase;margin:0 0 22px}
+h1{font:400 clamp(42px,6.2vw,98px)/.98 Georgia,serif;letter-spacing:-.055em;margin:0}h2{font-weight:400;letter-spacing:-.04em}.hero-sub{max-width:310px;margin-top:25px;font-size:13px;line-height:1.8;color:#93a0a8}.hero-bottom{position:absolute;left:5vw;bottom:105px;font:9px/1.8 ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:#819198}.hero-bottom strong{display:block;color:#dbe7ed;font-weight:400}
+.edge-meta{position:fixed;right:5vw;bottom:100px;z-index:3;font:9px ui-monospace,monospace;letter-spacing:.13em;color:#61757e;display:flex;gap:18px;text-transform:uppercase;pointer-events:none}.edge-meta .live{color:var(--cyan)}
+.stage-name{position:fixed;top:170px;left:5vw;z-index:3;font:10px ui-monospace,monospace;letter-spacing:.14em;color:#8eabb5;text-transform:uppercase;pointer-events:none;opacity:0}
+#atlas-controls{position:fixed;z-index:8;top:215px;left:5vw;width:290px}#atlas-controls label{display:block;font:10px ui-monospace,monospace;color:#91a3ac;margin-bottom:14px;text-transform:uppercase;letter-spacing:.13em}#atlas-controls select{width:100%;margin-bottom:14px}#atlas-controls p{font-size:11px;color:#8798a1;line-height:1.6}
+button,select{border:1px solid #33454e;border-radius:3px;background:#080e12;color:#d9e6ec;font:11px system-ui;padding:10px 12px;cursor:pointer}button:hover,button:focus-visible,select:focus-visible{border-color:var(--cyan);outline:1px solid var(--cyan)}
+.part-card{position:fixed;z-index:6;left:5vw;top:440px;width:290px;opacity:0;pointer-events:none;transform:translateY(10px);transition:opacity .2s,transform .2s;border-top:1px solid #35505b;padding-top:20px}.part-card.visible{opacity:1;transform:none}.card-top{display:flex;justify-content:space-between;gap:15px;font:9px/1.6 ui-monospace,monospace;margin-bottom:15px;letter-spacing:.1em}.card-eyebrow{color:var(--cyan)}.card-index{color:#708791}.card-title{font:400 28px/1.12 Georgia,serif;letter-spacing:-.025em;margin:0 0 14px}.card-copy{font-size:12px;line-height:1.85;color:#a4b4bc;margin:0}.card-foot{display:flex;align-items:center;gap:8px;font:9px/1.8 ui-monospace,monospace;color:#7f9aa6;margin-top:20px}.card-foot span{width:4px;height:4px;background:var(--cyan)}
+.bottom-hint,#selected-pin{display:none}
+#circulation{position:fixed;z-index:6;inset:175px 5vw 105px;overflow:auto;background:#020204}#circulation h2{font:400 clamp(34px,4vw,64px)/1.05 Georgia,serif;letter-spacing:-.04em;margin:0 0 40px}.flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px 60px;max-width:1100px}.flow-grid article{border-top:1px solid #28434f;padding-top:20px}.flow-grid b{font:10px ui-monospace,monospace;letter-spacing:.12em;color:#61f2ff}.flow-grid h3{font:400 25px Georgia,serif;margin:16px 0 12px}.flow-grid p{max-width:470px;font-size:13px;line-height:1.8;color:#a2b2ba}.source{max-width:950px;font-size:10px;line-height:1.7;color:#7c929d;margin-top:30px}a{color:#74d6e5}
+.chapter-nav{position:fixed;bottom:28px;left:5vw;right:5vw;z-index:10;display:flex;gap:26px;border-top:1px solid #1d333e;padding-top:18px}.chapter-nav button{padding:0;background:none;border:0;border-radius:0;color:#93aab5;font:10px ui-monospace,monospace;letter-spacing:.06em}.chapter-nav button[aria-current="step"]{color:var(--cyan)}
+.credits-open{position:fixed;right:5vw;bottom:28px;z-index:11;background:#020204;border:0;padding:0;color:#8099a6;font:10px ui-monospace,monospace}
+#fallback{position:fixed;inset:140px 0 0;display:none;z-index:15;align-items:center;justify-content:center;background:#020204;color:#c7dae4;text-align:center;padding:40px}
+#credits{background:#080e12;color:#d4e2e9;border:1px solid #38535f;border-radius:6px;width:min(1100px,94vw);max-height:80vh;padding:35px;line-height:1.8;font-size:13px}#credits::backdrop{background:#000c;backdrop-filter:blur(10px)}#credits-close{float:right}.reference-grid{display:grid;grid-template-columns:1fr 1fr;gap:25px}.reference-grid figure{margin:20px 0}.reference-grid img{width:100%;height:320px;object-fit:contain;background:#fff}.reference-grid figcaption{font-size:10px;color:#8aabbc}
+@media(max-height:760px) and (min-width:701px){.part-card{top:390px}.card-copy{font-size:11px;line-height:1.65}.card-title{font-size:25px}#atlas-controls{top:200px}}
+@media(max-width:700px){.brand,.stage-name{top:160px;left:20px;font-size:8px}.hero-copy{left:20px;top:auto;bottom:120px;max-width:330px}h1{font-size:44px}.hero-sub{font-size:12px;margin-top:18px;max-width:260px}.hero-bottom{display:none}.edge-meta{right:20px;bottom:95px;font-size:8px}.edge-meta>span:first-child{display:none}#atlas-controls{top:190px;left:20px;width:230px}#atlas-controls p{display:none}#atlas-controls select{margin-bottom:8px;padding:8px}.part-card{left:20px;right:20px;top:auto;bottom:110px;width:auto;max-height:175px;overflow:auto;pointer-events:auto;padding-top:14px}.card-copy{font-size:11px;line-height:1.6}.card-title{font-size:24px}.card-foot{margin-top:10px}.card-top{margin-bottom:8px}.chapter-nav{left:20px;right:20px;bottom:50px;gap:20px}.chapter-nav button{font-size:9px}.credits-open{left:20px;right:auto;bottom:18px;font-size:9px}#circulation{inset:160px 20px 100px}.flow-grid{grid-template-columns:1fr;gap:18px}#circulation h2{font-size:36px;margin-bottom:26px}.flow-grid h3{font-size:22px}.source{font-size:10px}.reference-grid{grid-template-columns:1fr}#credits{padding:20px}.reference-grid img{height:260px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+:root{--cyan:#f1f1f1;--muted:#aaa}
+.brand,.stage-name{top:125px}.hero-copy{top:34%;left:max(5vw,calc((100vw - 1320px)/2));max-width:510px}h1{font-size:clamp(42px,5.3vw,82px)}.hero-sub{color:#aaa}.brand,.stage-name,#atlas-controls,.part-card{left:max(5vw,calc((100vw - 1320px)/2))}
+#atlas-controls{top:175px}.part-card{top:385px}.card-copy{color:#aaa}.card-foot,.kicker,.source,.edge-meta,.card-index{color:#999}.card-eyebrow,.flow-grid b,a{color:#eee}
+#circulation{inset:0;padding:125px max(5vw,calc((100vw - 1320px)/2)) 95px;overflow-y:auto;will-change:transform;background:#020204}
+#circulation h2{font-size:clamp(30px,3.3vw,48px);margin-bottom:25px}.circulation-layout{display:grid;grid-template-columns:minmax(280px,.85fr) 1.15fr;gap:45px;align-items:center}.circulation-figure{margin:0;padding:16px;background:#f8f8f8;border-radius:4px}.circulation-figure img{display:block;width:100%;height:min(48vh,460px);object-fit:contain;filter:grayscale(1)}.circulation-figure figcaption{font:9px/1.6 system-ui;color:#444;margin-top:10px}.circulation-figure a{color:#333}.flow-grid{gap:20px 24px}.flow-grid h3{font-size:21px;margin:12px 0 8px}.flow-grid p{font-size:12px;line-height:1.7}.flow-grid article{border-color:#555;padding-top:14px}.anatomy-coverage{font-size:11px;line-height:1.8;color:#aaa;margin-top:20px}.source{margin-top:12px}
+.chapter-nav{border-color:#333}.credits-open{color:#aaa}.reference-grid img{filter:grayscale(1)}.brand-mark,.card-foot span{background:white}button,select{border-color:#555;background:#111;color:#eee}.hero-ui,#circulation{will-change:transform}.hero-ui{transition:none}
+@media(max-width:1200px){.brand,.stage-name{top:160px}#atlas-controls{top:205px}.part-card{top:410px}#circulation{padding-top:155px}}
+@media(max-width:700px){.brand,.stage-name{top:155px;left:20px}.hero-copy{left:20px;top:auto;bottom:115px}h1{font-size:42px}#atlas-controls{top:180px;left:20px}.part-card{top:auto;bottom:110px;left:20px}#circulation{padding:155px 20px 110px}.circulation-layout{grid-template-columns:1fr;gap:22px}.circulation-figure img{height:290px}.flow-grid{grid-template-columns:1fr 1fr}.flow-grid p{font-size:11px}.flow-grid h3{font-size:19px}.flow-grid b{font-size:9px}.reference-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<canvas tabindex="0" id="scene" aria-label="Interactive 3D anatomical heart visualization"></canvas>
+<div id="fallback">This interactive anatomical study needs WebGL. Please enable hardware acceleration or open this page in a browser with WebGL enabled.</div>
+<div class="hero-ui" id="heroUI">
+  <div class="brand"><span class="brand-mark"></span><span>ABOUT THE HEART</span></div>
+  <div class="hero-copy"><p class="kicker">01 — Heart anatomy data</p><h1>At the heart<br>of every pulse.</h1><p class="hero-sub">Explore the pump behind the pulse. Follow the pulse through a point-cloud study, the circulation pathway, and an anatomical reference atlas.</p></div>
+  <div class="hero-bottom"><strong>Scroll to inspect</strong>360° point-cloud study<br>Scroll to the reference atlas</div>
+</div>
+<div class="edge-meta" id="edgeMeta"><span>VG - 001</span><span class="live" id="phaseLabel">Heart Model</span></div>
+<div class="stage-name" id="stageName">03 — Anatomical atlas / Drag to orbit</div>
+<div class="bottom-hint" id="bottomHint"><b>Drag</b> to orbit &nbsp;·&nbsp; <b>Hover</b> to identify</div>
+<div id="selected-pin"></div>
+<div class="part-card" id="partCard" aria-live="polite">
+  <div class="card-top"><div class="card-eyebrow" id="cardEyebrow">ANATOMICAL STRUCTURE</div><div class="card-index" id="cardIndex">00 / 28</div></div>
+  <h2 class="card-title" id="cardTitle">Explore the model</h2>
+  <p class="card-copy" id="cardCopy">Hover a structure to highlight its surface and learn what it does.</p>
+  <div class="card-foot"><span></span><div id="cardFoot">Interactive anatomy / live selection</div></div>
+</div>
+<section id="circulation" aria-label="How blood flows" hidden>
+<p class="kicker">02 / FOLLOW THE BLOOD</p><h2>Two circuits.<br>One continuous journey.</h2>
+<div class="circulation-layout"><figure class="circulation-figure"><img src="__REFERENCE_ONE__" alt="Labeled cross section showing all four chambers, four valves, septum and the major blood vessels"><figcaption>Heart cross section · ZooFari · <a href="https://commons.wikimedia.org/wiki/File:Heart_diagram-en.svg" target="_blank" rel="noopener">source</a> · CC BY-SA 3.0 · grayscale display</figcaption></figure><div class="flow-grid">
+<article><b>01 / BODY → RIGHT HEART</b><h3>Return & receive</h3><p>Oxygen-poor blood returns through the venae cavae to the right atrium, then crosses the tricuspid valve into the right ventricle.</p></article>
+<article><b>02 / RIGHT HEART → LUNGS</b><h3>Pump to the lungs</h3><p>The right ventricle sends blood through the pulmonary valve and pulmonary arteries to the lungs, where it gains oxygen.</p></article>
+<article><b>03 / LUNGS → LEFT HEART</b><h3>Oxygen-rich return</h3><p>Pulmonary veins bring blood to the left atrium. It passes through the mitral valve into the left ventricle.</p></article>
+<article><b>04 / LEFT HEART → BODY</b><h3>Launch the pulse</h3><p>The left ventricle ejects blood through the aortic valve into the aorta. ARTERIO studies the optical pulse recorded at a fingertip.</p></article>
+</div></div><p class="anatomy-coverage">Four chambers · Four valves · Septum · Aorta · Pulmonary arteries and veins · Venae cavae · Coronary circulation. Internal structures are explained in this cross section; the external 3D surface is not a complete microscopic atlas.</p><p class="source">Anatomy: <a href="https://www.nhlbi.nih.gov/health/heart/blood-flow" target="_blank" rel="noopener">NIH / NHLBI — Blood flow through the heart</a>. The diagram is educational and is not a patient scan.</p>
+</section>
+<nav class="chapter-nav" aria-label="Heart chapters"><button data-progress="0">01 / Point cloud</button><button data-progress=".5">02 / Blood flow</button><button data-progress="1">03 / Atlas</button></nav>
+<div id="atlas-controls" hidden><label for="structure">Explore a structure</label><select id="structure"><option value="">Hover or select…</option></select><button id="rotate-left" aria-label="Rotate heart left">←</button><button id="rotate-right" aria-label="Rotate heart right">→</button><button id="reset-view">Reset view</button><p>Drag to orbit · Arrow keys rotate the focused canvas</p></div>
+<button id="credits-open" class="credits-open">Model & references ↗</button>
+<dialog id="credits"><button id="credits-close" aria-label="Close model references">Close ×</button><p class="kicker">SOURCES / ANATOMY</p><h2>A reference, not a scan.</h2><p>BodyParts3D, © The Database Center for Life Science licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC Attribution 4.0 International</a>.</p><p>BodyParts3D 4.0 mesh subset prepared by <a href="https://github.com/organui/heart-3d" target="_blank" rel="noopener">OrganUI</a>. The lower atlas uses source-mapped geometry with a shared display proportion adjustment; the opening point cloud preserves the original procedural art. ARTERIO supplies the rendering and interaction. The atlas is an educational illustration; its display proportions are adapted and are not anatomical measurements. Simplified adult reference with source-mapped valve assemblies, pulmonary vessels , coronary veins and arch branches added from the official BodyParts3D archive. Vessel ends are clipped to the cardiac region. Small distal branches, tissue layers and microscopic anatomy are not complete; no clinical anatomy review is claimed.</p><p>The ventricular wall is one source mesh, including its internal muscle. Cavity surfaces depict chamber spaces, not tissue. Cavities and internal valve assemblies are isolated when selected so the exterior wall does not hide them. Study the septum and the full circulation pathway in section 02’s labeled cross section.</p><div class="reference-grid"><figure><img src="__REFERENCE_ONE__" alt="Cross-sectional heart diagram with chambers and major vessels"><figcaption>ZooFari — Heart diagram-en.svg</figcaption></figure><figure><img src="__REFERENCE_TWO__" alt="Labeled heart chambers and valves"><figcaption>Wapcaplet & Yaddah — Diagram of the human heart.svg</figcaption></figure></div><p>Unchanged reference diagrams: <a href="https://commons.wikimedia.org/wiki/File:Heart_diagram-en.svg" target="_blank" rel="noopener">ZooFari</a> / <a href="https://commons.wikimedia.org/wiki/File:Diagram_of_the_human_heart.svg" target="_blank" rel="noopener">Wapcaplet & Yaddah</a>, <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a>. Educational context: <a href="https://www.nhlbi.nih.gov/health/heart/blood-flow" target="_blank" rel="noopener">NIH / NHLBI</a>.</p></dialog>
+<main class="scroll-track" aria-label="Scroll through the heart visualization"></main>
+<script>
+(() => {
+'use strict';
+const canvas = document.getElementById('scene');
+const fallback = document.getElementById('fallback');
+const gl = canvas.getContext('webgl', {alpha:false, antialias:true, depth:true, stencil:false, premultipliedAlpha:false, preserveDrawingBuffer:false}) || canvas.getContext('experimental-webgl');
+const softwareMode = !gl;
+const ctx = softwareMode ? canvas.getContext('2d') : null;
+if (softwareMode && !ctx) { fallback.style.display = 'flex'; return; }
+const heroUI = document.getElementById('heroUI');
+const edgeMeta = document.getElementById('edgeMeta');
+const stageName = document.getElementById('stageName');
+const bottomHint = document.getElementById('bottomHint');
+const partCard = document.getElementById('partCard');
+const cardEyebrow = document.getElementById('cardEyebrow');
+const cardIndex = document.getElementById('cardIndex');
+const cardTitle = document.getElementById('cardTitle');
+const cardCopy = document.getElementById('cardCopy');
+const cardFoot = document.getElementById('cardFoot');
+const phaseLabel = document.getElementById('phaseLabel');
+const pin = document.getElementById('selected-pin');
+const PI = Math.PI;
+let viewportW = 1, viewportH = 1, dpr = 1, currentProgress = 0, lastTime = 0, elapsed = 0, lastSoftwareFrame = 0;
+const pointer = {x:-10000,y:-10000, inside:false, down:false, lastX:0,lastY:0, moved:false};
+let activePart = null;
+let selectedPart = '';
+const circulation = document.getElementById('circulation');
+const atlasControls = document.getElementById('atlas-controls');
+let bottomYaw = -0.25, bottomPitch = 0.02, dragMoved = false;
+let topPressure = 0;
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function compileShader(type, source) {
+  const shader = gl.createShader(type); gl.shaderSource(shader, source); gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) { const error = gl.getShaderInfoLog(shader); gl.deleteShader(shader); throw new Error(error || 'Shader compilation failed'); }
+  return shader;
+}
+function createProgram(vs, fs) {
+  const p = gl.createProgram(); gl.attachShader(p, compileShader(gl.VERTEX_SHADER, vs)); gl.attachShader(p, compileShader(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p) || 'Program link failed');
+  return p;
+}
+const meshVS = `
+attribute vec3 aPosition; attribute vec3 aNormal;
+uniform mat4 uMVP; uniform mat4 uMV;
+varying vec3 vNormal; varying vec3 vEyePosition; varying vec3 vLocalPosition;
+void main(){ vec4 ep=uMV*vec4(aPosition,1.0); vEyePosition=ep.xyz; vNormal=normalize(mat3(uMV)*aNormal); vLocalPosition=aPosition; gl_Position=uMVP*vec4(aPosition,1.0); }
+`;
+const meshFS = `
+precision mediump float;
+uniform vec3 uColor; uniform float uHighlight; uniform float uAlpha;
+varying vec3 vNormal; varying vec3 vEyePosition; varying vec3 vLocalPosition;
+void main(){
+ vec3 N=normalize(vNormal); vec3 V=normalize(-vEyePosition);
+ vec3 L1=normalize(vec3(-3.5,4.5,6.0)-vEyePosition*0.10);
+ vec3 L2=normalize(vec3(3.0,0.0,4.0)-vEyePosition*0.08);
+ float d1=max(dot(N,L1),0.0); float d2=max(dot(N,L2),0.0);
+ vec3 H=normalize(L1+V); float spec=0.65*pow(max(dot(N,H),0.0),28.0)+0.35*pow(max(dot(N,H),0.0),72.0);
+ float rim=pow(1.0-max(dot(N,V),0.0),2.0);
+ float micro=sin(vLocalPosition.x*103.0+sin(vLocalPosition.z*67.0))*sin(vLocalPosition.y*113.0+sin(vLocalPosition.x*79.0));
+ float diffuse=0.28+0.54*d1+0.16*d2;
+ vec3 base=uColor*(diffuse+micro*0.008)+vec3(0.20)*spec+vec3(0.07)*rim;
+ vec3 cyan=vec3(0.0,0.949,0.996);
+ base=mix(base,cyan*(0.48+0.38*d1)+vec3(.08)*spec, uHighlight);
+ gl_FragColor=vec4(clamp(base,0.0,1.0),uAlpha);
+}
+`;
+const pointVS = `
+attribute vec3 aPosition; attribute vec3 aNormal; attribute float aTone;
+uniform mat4 uMVP; uniform mat4 uMV; uniform float uPointSize; uniform float uAlpha;
+varying float vShade; varying float vTone; varying float vAlpha;
+void main(){ vec4 ep=uMV*vec4(aPosition,1.0); vec3 N=normalize(mat3(uMV)*aNormal); vec3 L=normalize(vec3(-2.5,3.8,6.0)-ep.xyz*0.08); float d=max(dot(N,L),0.0); float rim=pow(1.0-max(dot(N,normalize(-ep.xyz)),0.0),2.0); vShade=0.31+0.58*d+0.13*rim; vTone=aTone; vAlpha=uAlpha; gl_Position=uMVP*vec4(aPosition,1.0); gl_PointSize=uPointSize*clamp(6.2/max(1.7,-ep.z),0.6,1.45); }
+`;
+const pointFS = `
+precision mediump float; varying float vShade; varying float vTone; varying float vAlpha;
+void main(){ float r=length(gl_PointCoord-vec2(0.5))*2.0; float edge=1.0-smoothstep(0.62,1.0,r); if(edge<0.025) discard; float val=clamp((0.52+vTone*0.40)*vShade,0.12,1.0); vec3 c=vec3(val); gl_FragColor=vec4(c,edge*vAlpha); }
+`;
+let meshProgram=null, pointProgram=null;
+if (gl) { try { meshProgram = createProgram(meshVS,meshFS); pointProgram = createProgram(pointVS,pointFS); } catch (e) { console.error(e); } }
+function uniforms(program, names){const o={}; if(gl&&program)for(const n of names)o[n]=gl.getUniformLocation(program,n); return o;}
+const meshU=uniforms(meshProgram,['uMVP','uMV','uColor','uHighlight','uAlpha']);
+const pointU=uniforms(pointProgram,['uMVP','uMV','uPointSize','uAlpha']);
+const attrib=(p,n)=>gl&&p?gl.getAttribLocation(p,n):0;
+const meshA={p:attrib(meshProgram,'aPosition'),n:attrib(meshProgram,'aNormal')};
+const pointA={p:attrib(pointProgram,'aPosition'),n:attrib(pointProgram,'aNormal'),tone:attrib(pointProgram,'aTone')};
+
+// Column-major matrices shared by drawing and surface picking.
+function mIdentity(){return new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);}
+function mMultiply(a,b){const o=new Float32Array(16); for(let c=0;c<4;c++)for(let r=0;r<4;r++)o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3]; return o;}
+function mTranslate(x,y,z){const m=mIdentity();m[12]=x;m[13]=y;m[14]=z;return m;}
+function mScale(x,y,z){const m=mIdentity();m[0]=x;m[5]=y;m[10]=z;return m;}
+function mRotateX(a){const c=Math.cos(a),s=Math.sin(a);return new Float32Array([1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1]);}
+function mRotateY(a){const c=Math.cos(a),s=Math.sin(a);return new Float32Array([c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1]);}
+function mRotateZ(a){const c=Math.cos(a),s=Math.sin(a);return new Float32Array([c,s,0,0, -s,c,0,0, 0,0,1,0, 0,0,0,1]);}
+function mPerspective(fov,aspect,near,far){const f=1/Math.tan(fov/2),nf=1/(near-far);const o=new Float32Array(16);o[0]=f/aspect;o[5]=f;o[10]=(far+near)*nf;o[11]=-1;o[14]=2*far*near*nf;return o;}
+function mView(cameraZ){return mTranslate(0,0,-cameraZ);}
+function modelMatrix(yaw,pitch,scale,x=0,y=0,z=0){return mMultiply(mTranslate(x,y,z),mMultiply(mRotateY(yaw),mMultiply(mRotateX(pitch),mScale(scale,scale,scale))));}
+function transformPoint(m,p){const x=p[0],y=p[1],z=p[2];return [m[0]*x+m[4]*y+m[8]*z+m[12],m[1]*x+m[5]*y+m[9]*z+m[13],m[2]*x+m[6]*y+m[10]*z+m[14]];}
+function projectPoint(p,model,vp){const w=transformPoint(model,p);const cx=vp[0]*w[0]+vp[4]*w[1]+vp[8]*w[2]+vp[12],cy=vp[1]*w[0]+vp[5]*w[1]+vp[9]*w[2]+vp[13],cz=vp[2]*w[0]+vp[6]*w[1]+vp[10]*w[2]+vp[14],cw=vp[3]*w[0]+vp[7]*w[1]+vp[11]*w[2]+vp[15];if(cw<=0)return null;return {x:(cx/cw*.5+.5)*viewportW,y:(1-(cy/cw*.5+.5))*viewportH,z:cz/cw};}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function smooth(a,b,x){const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);}
+function normalize(v){const l=Math.hypot(v[0],v[1],v[2])||1;return [v[0]/l,v[1]/l,v[2]/l];}
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+
+// Local, attributed BodyParts3D reference mesh. Only the verified GLB subset is decoded.
+function decodeReferenceModel(encoded) {
+  const bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));
+  const view=new DataView(bytes.buffer);
+  if(view.getUint32(0,true)!==0x46546c67||view.getUint32(4,true)!==2)throw new Error('Invalid bundled heart model');
+  const jsonLength=view.getUint32(12,true);
+  const data=JSON.parse(new TextDecoder().decode(bytes.subarray(20,20+jsonLength)));
+  const binaryOffset=20+jsonLength+8;
+  function read(index) {
+    const a=data.accessors[index],b=data.bufferViews[a.bufferView];
+    const size=a.type==='VEC3'?3:1;
+    const Type=a.componentType===5126?Float32Array:a.componentType===5125?Uint32Array:Uint16Array;
+    if(a.sparse)throw new Error('Unsupported sparse accessor');
+    const offset=binaryOffset+(b.byteOffset||0)+(a.byteOffset||0),stride=b.byteStride||size*Type.BYTES_PER_ELEMENT;
+    const output=new Type(a.count*size);
+    for(let i=0;i<a.count;i++)for(let j=0;j<size;j++){
+      const at=offset+i*stride+j*Type.BYTES_PER_ELEMENT;
+      output[i*size+j]=a.componentType===5126?view.getFloat32(at,true):a.componentType===5125?view.getUint32(at,true):view.getUint16(at,true);
+    }
+    return output;
+  }
+  return data.nodes.map(node=>{
+    const primitive=data.meshes[node.mesh].primitives[0];
+    const positions=read(primitive.attributes.POSITION),normals=read(primitive.attributes.NORMAL),sourceIndices=read(primitive.indices);
+    for(const index of sourceIndices)if(index>65535||index>=positions.length/3)throw new Error('Model index out of range');
+    return {part:node.name,name:node.name,mesh:{positions,normals,indices:new Uint16Array(sourceIndices)},color:node.name.includes('coronary')?[.43,.46,.48]:[.90,.90,.89],gl:null};
+  });
+}
+function decodeCardiacExtras(parts) {
+  const typed=(value,Type)=>{const bytes=Uint8Array.from(atob(value),c=>c.charCodeAt(0));return new Type(bytes.buffer);};
+  return parts.map(part=>({part:part.id,name:part.name,internal:part.internal,
+    mesh:{positions:typed(part.positions,Float32Array),normals:typed(part.normals,Float32Array),indices:typed(part.indices,Uint16Array)},color:/cardiac-vein|coronary-sinus/.test(part.id)?[.43,.46,.48]:[.90,.90,.89],gl:null}));
+}
+let anatomy;
+try {anatomy=decodeReferenceModel('__MODEL_BASE64__');anatomy.push(...decodeCardiacExtras(__EXTRA_ANATOMY__));}
+catch(error){fallback.textContent='The local anatomical model could not load. Reload ARTERIO to retry.';fallback.style.display='flex';console.error(error);return;}
+// A shared illustration transform keeps the full assembly aligned at a slimmer proportion.
+// Apply its inverse scale to normals so lighting and surface picking stay consistent.
+const atlasShape=[.86,1.12,.94];
+for(const obj of anatomy){
+  const positions=obj.mesh.positions,normals=obj.mesh.normals;
+  const minimum=[Infinity,Infinity,Infinity],maximum=[-Infinity,-Infinity,-Infinity];
+  for(let i=0;i<positions.length;i+=3){
+    for(let axis=0;axis<3;axis++){positions[i+axis]*=atlasShape[axis];normals[i+axis]/=atlasShape[axis];minimum[axis]=Math.min(minimum[axis],positions[i+axis]);maximum[axis]=Math.max(maximum[axis],positions[i+axis]);}
+    const length=Math.hypot(normals[i],normals[i+1],normals[i+2])||1;
+    for(let axis=0;axis<3;axis++)normals[i+axis]/=length;
+  }
+  obj.focus={center:minimum.map((n,i)=>(n+maximum[i])/2),size:Math.max(...maximum.map((n,i)=>n-minimum[i]))};
+}
+
+function partVisible(id) {
+  const cavity=id==='left-ventricle'||id==='right-ventricle';
+  const selected=anatomy.find(part=>part.part===selectedPart);
+  if(selected?.internal||selectedPart==='left-ventricle'||selectedPart==='right-ventricle')return id===selectedPart;
+  return !cavity&&!anatomy.find(part=>part.part===id)?.internal;
+}
+// Keep a separate GPU buffer for each selectable structure.
+function uploadMesh(mesh,dynamic=false){
+  if(!gl)return null;
+  const p=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,p);gl.bufferData(gl.ARRAY_BUFFER,mesh.positions,dynamic?gl.DYNAMIC_DRAW:gl.STATIC_DRAW);
+  const n=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,n);gl.bufferData(gl.ARRAY_BUFFER,mesh.normals,gl.STATIC_DRAW);
+  const ix=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ix);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,mesh.indices,gl.STATIC_DRAW);
+  return {p,n,ix,count:mesh.indices.length,vertexCount:mesh.positions.length/3};
+}
+for(const o of anatomy)o.gl=uploadMesh(o.mesh);
+
+// Sample triangles by area for the opening point cloud.
+function makePointCloud(objects,count=42000){
+  const tris=[];let total=0;
+  for(const obj of objects){const p=obj.mesh.positions,ind=obj.mesh.indices;
+    for(let i=0;i<ind.length;i+=3){
+      const ia=ind[i]*3,ib=ind[i+1]*3,ic=ind[i+2]*3;
+      const ax=p[ia],ay=p[ia+1],az=p[ia+2],bx=p[ib],by=p[ib+1],bz=p[ib+2],cx=p[ic],cy=p[ic+1],cz=p[ic+2];
+      const ab=[bx-ax,by-ay,bz-az],ac=[cx-ax,cy-ay,cz-az],cr=cross(ab,ac),area=Math.hypot(cr[0],cr[1],cr[2])*.5;
+      if(area>1e-9){total+=area;tris.push({obj,ia,ib,ic,cum:total,area});}
+    }
+  }
+  let seed=0x1a2b3c4d;function rnd(){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return (seed>>>0)/4294967296;}
+  const base=new Float32Array(count*3),normals=new Float32Array(count*3),tone=new Float32Array(count),deformed=new Float32Array(count*3);
+  for(let k=0;k<count;k++){
+    const target=rnd()*total;let lo=0,hi=tris.length-1;
+    while(lo<hi){const mid=(lo+hi)>>1;if(tris[mid].cum<target)lo=mid+1;else hi=mid;}
+    const tr=tris[lo],p=tr.obj.mesh.positions,n=tr.obj.mesh.normals;const root=Math.sqrt(rnd()),v=rnd(),wa=1-root,wb=root*(1-v),wc=root*v;
+    const id=k*3,ia=tr.ia,ib=tr.ib,ic=tr.ic;
+    base[id]=p[ia]*wa+p[ib]*wb+p[ic]*wc;base[id+1]=p[ia+1]*wa+p[ib+1]*wb+p[ic+1]*wc;base[id+2]=p[ia+2]*wa+p[ib+2]*wb+p[ic+2]*wc;
+    normals[id]=n[ia]*wa+n[ib]*wb+n[ic]*wc;normals[id+1]=n[ia+1]*wa+n[ib+1]*wb+n[ic+1]*wc;normals[id+2]=n[ia+2]*wa+n[ib+2]*wb+n[ic+2]*wc;
+    const nn=normalize([normals[id],normals[id+1],normals[id+2]]);normals[id]=nn[0];normals[id+1]=nn[1];normals[id+2]=nn[2];
+    tone[k]=.48+rnd()*.48;deformed[id]=base[id];deformed[id+1]=base[id+1];deformed[id+2]=base[id+2];
+  }
+  return {base,normals,tone,deformed,count,gl:null};
+}
+const topAnatomy=(()=>{
+function meshData(pos,norm,idx,rows=null,cols=null,wrapCols=false){return {positions:new Float32Array(pos),normals:new Float32Array(norm),indices:new Uint16Array(idx),rows,cols,wrapCols};}
+function makeLoft(layers, radial=72, subdivisions=9){
+  const pos=[],norm=[],idx=[]; const ringCount=(layers.length-1)*subdivisions+1;
+  function cat(a,b,c,d,t){return 0.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);}
+  for(let r=0;r<ringCount;r++){
+    const seg=Math.min(layers.length-2,Math.floor(r/subdivisions));const u=(r-seg*subdivisions)/subdivisions;
+    const l0=layers[Math.max(0,seg-1)],l1=layers[seg],l2=layers[seg+1],l3=layers[Math.min(layers.length-1,seg+2)];
+    const y=cat(l0.y,l1.y,l2.y,l3.y,u), rx=Math.max(.005,cat(l0.rx,l1.rx,l2.rx,l3.rx,u)), rz=Math.max(.005,cat(l0.rz,l1.rz,l2.rz,l3.rz,u)), cx=cat(l0.cx||0,l1.cx||0,l2.cx||0,l3.cx||0,u), cz=cat(l0.cz||0,l1.cz||0,l2.cz||0,l3.cz||0,u);
+    for(let j=0;j<radial;j++){
+      const a=j/radial*Math.PI*2, cs=Math.cos(a),sn=Math.sin(a);
+      const irregular=1+0.018*Math.sin(3*a+u*5.4)+0.012*Math.cos(5*a-u*4.0);
+      const x=cx+rx*cs*irregular;
+      const z=cz+rz*sn*(1+0.022*Math.cos(3*a+u*3.3))+0.014*Math.sin(a*2+u*8)*Math.sin(u*Math.PI);
+      pos.push(x,y,z);
+      let ny=-0.17*Math.sin(a*2+u*1.7);
+      norm.push(cs/(rx*irregular),ny,sn/rz);
+    }
+  }
+  for(let r=0;r<ringCount-1;r++)for(let j=0;j<radial;j++){
+    const a=r*radial+j,b=r*radial+(j+1)%radial,c=(r+1)*radial+j,d=(r+1)*radial+(j+1)%radial;
+    idx.push(a,b,c,b,d,c);
+  }
+  // The loft's analytic normals remain stable at the tapered apex.
+  for(let k=0;k<norm.length;k+=3){const n=normalize([norm[k],norm[k+1],norm[k+2]]);norm[k]=n[0];norm[k+1]=n[1];norm[k+2]=n[2];}
+  return meshData(pos,norm,idx,ringCount,radial,true);
+}
+function makeEllipsoid(center, radii, kind='normal', lat=38, lon=56){
+  const pos=[],norm=[],idx=[];const [cx,cy,cz]=center,[rx,ry,rz]=radii;
+  for(let i=0;i<=lat;i++){
+    const phi=i/lat*Math.PI, ny=Math.cos(phi), s=Math.sin(phi);
+    for(let j=0;j<=lon;j++){
+      const th=j/lon*Math.PI*2,nx=Math.cos(th)*s,nz=Math.sin(th)*s;
+      let x=nx,y=ny,z=nz;
+      if(kind==='rightV'){
+        const taper=.62+.38*((ny+1)*.5);
+        x=nx*taper*(1+.10*ny)+.09*(1-ny)*.5;
+        z=nz*(.91+.08*ny)+.035*Math.sin(th*2+phi)*s;
+      } else if(kind==='atrium'){
+        x=nx*(.9+.10*ny)+.055*Math.sin(phi*1.8);
+        z=nz*(.9+.10*ny)+.02*Math.sin(th*3+phi)*s;
+      } else if(kind==='appendage'){
+        x=nx*(.68+.32*((ny+1)*.5))+.18*(1-ny)*.5;
+        z=nz*(.72+.28*((ny+1)*.5));
+      } else if(kind==='leftV'){
+        x=nx*(.8+.2*((ny+1)*.5))+.08*(1-ny)*.5;
+        z=nz*(.85+.15*((ny+1)*.5));
+      }
+      const px=cx+rx*x,py=cy+ry*y,pz=cz+rz*z;
+      pos.push(px,py,pz);
+      norm.push(x/(rx||1),y/(ry||1),z/(rz||1));
+    }
+  }
+  for(let i=0;i<lat;i++)for(let j=0;j<lon;j++){
+    const a=i*(lon+1)+j,b=a+1,c=a+lon+1,d=c+1;
+    idx.push(a,c,b,b,c,d);
+  }
+  for(let k=0;k<norm.length;k+=3){const n=normalize([norm[k],norm[k+1],norm[k+2]]);norm[k]=n[0];norm[k+1]=n[1];norm[k+2]=n[2];}
+  return meshData(pos,norm,idx,lat+1,lon+1,false);
+}
+function catmull3(p0,p1,p2,p3,t){const t2=t*t,t3=t2*t;return [0,1,2].map(k=>0.5*((2*p1[k])+(-p0[k]+p2[k])*t+(2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2+(-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3));}
+function makeTube(control, radial=14, steps=7){
+  const centers=[],rads=[];const segs=control.length-1;
+  for(let s=0;s<segs;s++)for(let q=0;q<steps;q++){
+    const t=q/steps,p0=control[Math.max(0,s-1)],p1=control[s],p2=control[s+1],p3=control[Math.min(control.length-1,s+2)];
+    centers.push(catmull3(p0,p1,p2,p3,t));rads.push(p1[3]+(p2[3]-p1[3])*t);
+  }
+  centers.push(control[control.length-1].slice(0,3));rads.push(control[control.length-1][3]);
+  const pos=[],norm=[],idx=[];
+  for(let i=0;i<centers.length;i++){
+    const before=centers[Math.max(0,i-1)],after=centers[Math.min(centers.length-1,i+1)];
+    const tangent=normalize([after[0]-before[0],after[1]-before[1],after[2]-before[2]]);
+    let ref=[0,0,1];if(Math.abs(dot(tangent,ref))>.90)ref=[1,0,0];
+    const n=normalize(cross(tangent,ref)),b=normalize(cross(tangent,n));
+    for(let j=0;j<radial;j++){
+      const a=j/radial*Math.PI*2,cs=Math.cos(a),sn=Math.sin(a),rr=rads[i];
+      const nx=n[0]*cs+b[0]*sn,ny=n[1]*cs+b[1]*sn,nz=n[2]*cs+b[2]*sn;
+      pos.push(centers[i][0]+rr*nx,centers[i][1]+rr*ny,centers[i][2]+rr*nz);norm.push(nx,ny,nz);
+    }
+  }
+  for(let i=0;i<centers.length-1;i++)for(let j=0;j<radial;j++){
+    const a=i*radial+j,b=i*radial+(j+1)%radial,c=(i+1)*radial+j,d=(i+1)*radial+(j+1)%radial;
+    idx.push(a,b,c,b,d,c);
+  }
+  return meshData(pos,norm,idx,centers.length,radial,true);
+}
+function mergeMeshes(meshes){
+  let pc=0,ic=0;for(const m of meshes){pc+=m.positions.length;ic+=m.indices.length;}
+  const p=new Float32Array(pc),n=new Float32Array(pc),ind=new Uint16Array(ic);let po=0,io=0,base=0;
+  for(const m of meshes){p.set(m.positions,po);n.set(m.normals,po);for(let k=0;k<m.indices.length;k++)ind[io+k]=m.indices[k]+base;po+=m.positions.length;io+=m.indices.length;base+=m.positions.length/3;}
+  return {positions:p,normals:n,indices:ind};
+}
+const anatomy=[];
+function addPart(part, mesh, color=[.66,.67,.68], name=part){anatomy.push({part,name,mesh,color,gl:null});}
+
+// Original procedural opening heart; the sourced atlas is loaded separately.
+addPart('left-ventricle',makeLoft([
+ {y:.20,rx:.40,rz:.27,cx:.00,cz:-.04},
+ {y:.04,rx:.58,rz:.36,cx:-.01,cz:-.025},
+ {y:-.18,rx:.68,rz:.42,cx:.00,cz:-.01},
+ {y:-.43,rx:.68,rz:.42,cx:.065,cz:-.005},
+ {y:-.69,rx:.58,rz:.38,cx:.145,cz:-.005},
+ {y:-.94,rx:.44,rz:.30,cx:.225,cz:-.025},
+ {y:-1.18,rx:.30,rz:.22,cx:.285,cz:-.035},
+ {y:-1.39,rx:.145,rz:.125,cx:.34,cz:-.035},
+ {y:-1.49,rx:.012,rz:.018,cx:.36,cz:-.035}
+ ],80,9),[.62,.63,.64],'Left ventricle · myocardium');
+addPart('right-ventricle',makeEllipsoid([-.235,-.39,.145],[.49,.64,.305],'rightV',44,64),[.59,.60,.61],'Right ventricle · anterior chamber');
+addPart('right-atrium',makeEllipsoid([-.395,.17,-.015],[.305,.335,.205],'atrium',42,60),[.72,.73,.74],'Right atrium');
+addPart('left-atrium',makeEllipsoid([.205,.245,-.255],[.295,.245,.15],'atrium',42,60),[.74,.75,.76],'Left atrium');
+addPart('right-atrial-appendage',makeTube([[-.37,.285,.10,.115],[-.47,.365,.135,.105],[-.57,.335,.17,.080],[-.635,.255,.18,.032]],12,8),[.70,.71,.72],'Right atrial appendage');
+addPart('left-atrial-appendage',makeTube([[.26,.275,.035,.11],[.36,.305,.10,.10],[.455,.235,.16,.075],[.49,.12,.18,.03]],12,8),[.73,.74,.75],'Left atrial appendage');
+
+// Curved tubes for the opening illustration.
+addPart('aorta',makeTube([[.07,.01,-.02,.205],[.105,.27,-.03,.205],[.13,.56,-.04,.19],[.10,.78,-.06,.175],[.015,.94,-.075,.155],[-.15,.99,-.08,.145],[-.31,.90,-.09,.13]],18,9),[.72,.73,.74],'Aorta and aortic arch');
+addPart('brachiocephalic-trunk',makeTube([[-.235,.925,-.075,.104],[-.305,1.08,-.055,.095],[-.33,1.28,-.025,.076],[-.34,1.36,-.02,.070]],16,8),[.72,.73,.74],'Brachiocephalic trunk');
+addPart('left-common-carotid',makeTube([[-.12,.975,-.075,.071],[-.13,1.12,-.045,.065],[-.125,1.29,-.02,.054],[-.12,1.38,-.005,.05]],14,8),[.74,.75,.76],'Left common carotid artery');
+addPart('left-subclavian',makeTube([[.07,.94,-.075,.074],[.16,1.08,-.045,.065],[.23,1.23,-.015,.055],[.265,1.32,.01,.048]],14,8),[.70,.71,.72],'Left subclavian artery');
+addPart('superior-vena-cava',makeTube([[-.43,1.14,-.12,.13],[-.43,.89,-.085,.13],[-.43,.61,-.045,.12],[-.43,.31,.01,.12],[-.40,.19,.035,.115]],18,8),[.58,.60,.62],'Superior vena cava');
+addPart('inferior-vena-cava',makeTube([[-.39,-1.29,-.12,.12],[-.40,-1.02,-.115,.12],[-.405,-.72,-.10,.115],[-.42,-.36,-.065,.115],[-.42,-.07,-.035,.115]],16,8),[.59,.61,.63],'Inferior vena cava');
+addPart('pulmonary-trunk',makeTube([[-.20,-.02,.235,.16],[-.235,.20,.29,.155],[-.205,.41,.28,.145],[-.07,.57,.20,.13],[.12,.62,.105,.115]],18,9),[.64,.65,.66],'Pulmonary trunk');
+addPart('right-pulmonary-artery',makeTube([[.02,.575,.12,.105],[-.17,.62,.045,.092],[-.38,.615,-.015,.077],[-.56,.57,-.06,.06]],16,8),[.68,.69,.70],'Right pulmonary artery');
+addPart('left-pulmonary-artery',makeTube([[.11,.61,.10,.105],[.30,.66,.045,.09],[.49,.635,-.025,.074],[.58,.59,-.06,.058]],16,8),[.65,.66,.67],'Left pulmonary artery');
+addPart('pulmonary-veins',makeTube([[.19,.25,-.19,.063],[.38,.22,-.21,.055],[.56,.20,-.245,.045],[.66,.18,-.26,.039]],13,8),[.70,.71,.72],'Pulmonary veins — upper pair');
+addPart('pulmonary-veins',makeTube([[.10,.12,-.20,.062],[.32,.04,-.205,.052],[.51,-.015,-.19,.043],[.62,-.05,-.17,.037]],13,8),[.69,.70,.71],'Pulmonary veins — lower pair');
+// Posterior tubes for the opening illustration.
+addPart('pulmonary-veins',makeTube([[-.18,.24,-.19,.057],[-.37,.20,-.22,.048],[-.54,.17,-.235,.04],[-.61,.15,-.24,.034]],12,7),[.65,.66,.67],'Pulmonary veins — right upper');
+addPart('pulmonary-veins',makeTube([[-.13,.04,-.19,.056],[-.34,-.02,-.20,.047],[-.50,-.09,-.18,.039],[-.57,-.12,-.16,.033]],12,7),[.65,.66,.67],'Pulmonary veins — right lower');
+
+// Surface branches in the opening illustration.
+addPart('left-anterior-descending',makeTube([[-.015,.10,.365,.022],[-.015,-.10,.410,.020],[.025,-.34,.418,.017],[.105,-.63,.355,.014],[.23,-.94,.265,.010],[.345,-1.23,.125,.006]],10,8),[.49,.50,.51],'Left anterior descending artery (LAD)');
+addPart('circumflex',makeTube([[-.03,.085,.37,.019],[-.20,.06,.382,.017],[-.385,.015,.337,.014],[-.49,-.12,.284,.010],[-.49,-.28,.255,.007]],10,8),[.50,.51,.52],'Left circumflex artery');
+addPart('right-coronary',makeTube([[-.25,.07,.400,.022],[-.42,.005,.365,.018],[-.49,-.17,.32,.014],[-.42,-.37,.305,.011],[-.29,-.48,.28,.007]],10,8),[.49,.50,.51],'Right coronary artery');
+addPart('coronary-branches',makeTube([[-.12,-.06,.405,.010],[-.19,-.18,.39,.008],[-.24,-.31,.355,.005]],8,6),[.48,.49,.50],'Septal coronary branch');
+addPart('coronary-branches',makeTube([[.02,-.25,.42,.010],[.12,-.28,.408,.008],[.19,-.36,.385,.005]],8,6),[.49,.50,.51],'Diagonal coronary branch');
+addPart('coronary-branches',makeTube([[.10,-.62,.36,.009],[.20,-.68,.35,.006],[.25,-.78,.326,.004]],8,6),[.49,.50,.51],'Distal coronary branch');
+addPart('coronary-branches',makeTube([[-.40,-.18,.32,.008],[-.31,-.22,.36,.006],[-.28,-.32,.34,.004]],8,6),[.49,.50,.51],'Right marginal branch');
+
+
+return anatomy;
+})();
+const pointCloud=makePointCloud(topAnatomy,42000);
+if(gl){pointCloud.p=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,pointCloud.p);gl.bufferData(gl.ARRAY_BUFFER,pointCloud.deformed,gl.DYNAMIC_DRAW);
+pointCloud.n=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,pointCloud.n);gl.bufferData(gl.ARRAY_BUFFER,pointCloud.normals,gl.STATIC_DRAW);
+pointCloud.t=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,pointCloud.t);gl.bufferData(gl.ARRAY_BUFFER,pointCloud.tone,gl.STATIC_DRAW);}
+
+const partDetails = {"coronary-sinus":{"title":"Coronary sinus","type":"CORONARY VENOUS RETURN","copy":"Collects most venous blood from the heart muscle and empties into the right atrium. It lies along the posterior atrioventricular groove.","foot":"Heart muscle → right atrium"},"great-cardiac-vein":{"title":"Great cardiac vein","type":"CORONARY VENOUS RETURN","copy":"Runs beside the anterior interventricular artery, then curves toward the coronary sinus. It drains part of the heart muscle.","foot":"Anterior surface → coronary sinus"},"middle-cardiac-vein":{"title":"Middle cardiac vein","type":"CORONARY VENOUS RETURN","copy":"Runs in the posterior interventricular groove toward the coronary sinus. Rotate the model to inspect its course on the back of the heart.","foot":"Posterior surface → coronary sinus"},"right-atrium": {"title": "Right atrium", "type": "RECEIVING CHAMBER", "copy": "Receives oxygen-poor blood returning from the body. Blood passes through the tricuspid valve to the right ventricle.", "foot": "Body → right heart"}, "left-atrium": {"title": "Left atrium", "type": "RECEIVING CHAMBER", "copy": "Receives oxygen-rich blood from the lungs through pulmonary veins. Blood then crosses the mitral valve.", "foot": "Lungs → left heart"}, "ventricular-wall": {"title": "Ventricular myocardium", "type": "MUSCULAR WALL", "copy": "The connected ventricular muscle surrounds the two pumping chambers. This reference mesh keeps the wall combined rather than inventing a boundary between its left and right parts.", "foot": "Muscle tissue / combined source mesh"}, "right-ventricle": {"title": "Right ventricular cavity", "type": "CHAMBER SPACE / ISOLATED", "copy": "This solid surface represents the interior chamber space, not muscle. Selecting it isolates the cavity so you can inspect its shape. The right ventricle pumps toward the lungs.", "foot": "Space inside the right ventricle"}, "left-ventricle": {"title": "Left ventricular cavity", "type": "CHAMBER SPACE / ISOLATED", "copy": "This solid surface represents the interior chamber space, not muscle. Selecting it isolates the cavity so you can inspect its shape. The left ventricle pumps toward the body.", "foot": "Space inside the left ventricle"}, "ascending-aorta": {"title": "Ascending aorta", "type": "SYSTEMIC OUTFLOW", "copy": "The first ascending segment carries blood away from the left ventricle. Coronary arteries branch near its root to supply the heart muscle.", "foot": "Left ventricle → aorta"}, "aortic-arch": {"title": "Aortic arch", "type": "SYSTEMIC DISTRIBUTION", "copy": "The aorta curves over the heart and continues toward the descending aorta. This reference includes a truncated vessel segment; its full branch network is not shown.", "foot": "Aorta → systemic circulation"}, "pulmonary-trunk": {"title": "Pulmonary trunk", "type": "PULMONARY OUTFLOW", "copy": "Blood leaves the right ventricle through the pulmonary valve into this vessel on its way to the lungs. The proximal right and left branches are shown; distal branches toward the lungs are truncated.", "foot": "Right ventricle → lungs"}, "superior-vena-cava": {"title": "Superior vena cava", "type": "SYSTEMIC RETURN", "copy": "Returns oxygen-poor blood from the upper body to the right atrium. This model shows a shortened segment.", "foot": "Upper body → right atrium"}, "left-coronary": {"title": "Left coronary artery tree", "type": "MYOCARDIAL SUPPLY", "copy": "This grouped tree supplies regions of the heart muscle with oxygen-rich blood. Its branches remain grouped according to the source model.", "foot": "Coronary circulation"}, "right-coronary": {"title": "Right coronary artery tree", "type": "MYOCARDIAL SUPPLY", "copy": "This grouped tree travels over the heart surface to supply heart muscle. Branches are shown together, not as individually selectable named vessels.", "foot": "Coronary circulation"}, "tricuspid-valve": {"title": "Tricuspid valve", "type": "VALVE ASSEMBLY / ISOLATED", "copy": "Between the right atrium and right ventricle. This source-mapped valve assembly is isolated for inspection.", "foot": "Internal valve structure"}, "mitral-valve": {"title": "Mitral valve", "type": "VALVE ASSEMBLY / ISOLATED", "copy": "Between the left atrium and left ventricle. The source mesh includes the valve apparatus; it is isolated for inspection.", "foot": "Internal valve structure"}, "aortic-valve": {"title": "Aortic valve", "type": "VALVE ASSEMBLY / ISOLATED", "copy": "At the outlet from the left ventricle into the aorta. This valve assembly is isolated for inspection.", "foot": "Internal valve structure"}, "pulmonary-valve": {"title": "Pulmonary valve", "type": "VALVE ASSEMBLY / ISOLATED", "copy": "At the outlet from the right ventricle into the pulmonary trunk. This valve assembly is isolated for inspection.", "foot": "Internal valve structure"}, "inferior-vena-cava": {"title": "Inferior vena cava", "type": "MAJOR VESSEL / SOURCE MESH", "copy": "Returns blood from the lower body to the right atrium. Only the segment near the heart is shown.", "foot": "Proximal anatomical segment"}, "right-superior-pulmonary-vein": {"title": "Right superior pulmonary vein", "type": "MAJOR VESSEL / SOURCE MESH", "copy": "Returns oxygen-rich blood from the lung to the left atrium. This source mesh shows the short segment near the heart.", "foot": "Proximal anatomical segment"}, "right-inferior-pulmonary-vein": {"title": "Right inferior pulmonary vein", "type": "MAJOR VESSEL / SOURCE MESH", "copy": "Returns oxygen-rich blood from the lung to the left atrium. This source mesh shows the short segment near the heart.", "foot": "Proximal anatomical segment"}, "left-superior-pulmonary-vein": {"title": "Left superior pulmonary vein", "type": "MAJOR VESSEL / SOURCE MESH", "copy": "Returns oxygen-rich blood from the lung to the left atrium. This source mesh shows the short segment near the heart.", "foot": "Proximal anatomical segment"}, "left-inferior-pulmonary-vein": {"title": "Left inferior pulmonary vein", "type": "MAJOR VESSEL / SOURCE MESH", "copy": "Returns oxygen-rich blood from the lung to the left atrium. This source mesh shows the short segment near the heart.", "foot": "Proximal anatomical segment"}, "brachiocephalic-trunk": {"title": "Brachiocephalic trunk", "type": "MAJOR VESSEL / SOURCE MESH", "copy": "A branch of the aortic arch toward the right head, neck and upper limb. Its distal branches are outside this view.", "foot": "Proximal anatomical segment"}, "left-common-carotid": {"title": "Left common carotid artery", "type": "MAJOR VESSEL / SOURCE MESH", "copy": "An aortic arch branch toward the left head and neck. The model shows its proximal segment.", "foot": "Proximal anatomical segment"}, "left-subclavian": {"title": "Left subclavian artery", "type": "MAJOR VESSEL / SOURCE MESH", "copy": "An aortic arch branch toward the left upper limb. The model shows its proximal segment.", "foot": "Proximal anatomical segment"}, "right-pulmonary-artery": {"title": "Right Pulmonary Artery", "type": "MAJOR VESSEL / SOURCE MESH", "copy": "Connects the pulmonary outflow toward the right lung. Only the portion near the cardiac region is shown.", "foot": "Proximal anatomical segment"}, "left-pulmonary-artery": {"title": "Left Pulmonary Artery", "type": "MAJOR VESSEL / SOURCE MESH", "copy": "Connects the pulmonary outflow toward the left lung. Only the portion near the cardiac region is shown.", "foot": "Proximal anatomical segment"}};
+const hotSpots=Object.keys(partDetails).map(id=>({id,...partDetails[id]}));
+const selector = document.getElementById('structure');
+for (const h of hotSpots) {const o=document.createElement('option');o.value=h.id;o.textContent=h.title;selector.appendChild(o);}
+let selectionAnimation=null;
+selector.addEventListener('change',()=>{
+  selectedPart=selector.value;setCard(selectedPart);
+  if(!selectedPart)return;
+  if(selectionAnimation)cancelAnimationFrame(selectionAnimation);
+  const rear=/pulmonary-vein|middle-cardiac-vein|coronary-sinus/.test(selectedPart);
+  const start=bottomYaw,target=(rear?PI:0)-.25,begin=performance.now();
+  function turn(now){const t=reducedMotion?1:clamp((now-begin)/550,0,1),ease=t*t*(3-2*t);bottomYaw=start+(target-start)*ease;if(t<1)selectionAnimation=requestAnimationFrame(turn);else selectionAnimation=null;}
+  selectionAnimation=requestAnimationFrame(turn);
+});
+for(const button of document.querySelectorAll('[data-progress]'))button.addEventListener('click',()=>{scrollToProgress(Number(button.dataset.progress));});
+document.getElementById('rotate-left').onclick=()=>bottomYaw-=.3;
+document.getElementById('rotate-right').onclick=()=>bottomYaw+=.3;
+document.getElementById('reset-view').onclick=()=>{if(selectionAnimation)cancelAnimationFrame(selectionAnimation);bottomYaw=-.25;bottomPitch=.02;selectedPart='';selector.value='';setCard(null);};
+canvas.addEventListener('keydown',e=>{if(currentProgress<.80)return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();if(e.key==='ArrowLeft')bottomYaw-=.15;if(e.key==='ArrowRight')bottomYaw+=.15;if(e.key==='ArrowUp')bottomPitch=clamp(bottomPitch-.15,-1.05,1.05);if(e.key==='ArrowDown')bottomPitch=clamp(bottomPitch+.15,-1.05,1.05);}});
+
+function resize(){
+  viewportW=window.innerWidth;viewportH=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);
+  canvas.width=Math.max(1,Math.round(viewportW*dpr));canvas.height=Math.max(1,Math.round(viewportH*dpr));canvas.style.width=viewportW+'px';canvas.style.height=viewportH+'px';if(gl)gl.viewport(0,0,canvas.width,canvas.height);
+}
+window.addEventListener('resize',resize,{passive:true});resize();
+let hostScroll=null;
+let chapterAnimation=null;
+function scrollToProgress(value) {
+  const surface=hostScroll||document.documentElement;
+  const max=surface.scrollHeight-(hostScroll?surface.clientHeight:window.innerHeight);
+  const start=hostScroll?surface.scrollTop:window.scrollY,target=value*max;
+  if(chapterAnimation)cancelAnimationFrame(chapterAnimation);
+  if(reducedMotion){if(hostScroll)surface.scrollTop=target;else window.scrollTo(0,target);readProgress();return;}
+  const begin=performance.now(),duration=950;
+  function step(now){const t=clamp((now-begin)/duration,0,1),e=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+    if(hostScroll)surface.scrollTop=start+(target-start)*e;else window.scrollTo(0,start+(target-start)*e);
+    readProgress();if(t<1)chapterAnimation=requestAnimationFrame(step);else chapterAnimation=null;}
+  chapterAnimation=requestAnimationFrame(step);
+}
+function readProgress() {
+  const surface=hostScroll||document.documentElement;
+  currentProgress=clamp((hostScroll?surface.scrollTop:window.scrollY)/Math.max(1,surface.scrollHeight-(hostScroll?surface.clientHeight:window.innerHeight)),0,1);
+}
+try {
+  if(window.frameElement){
+    hostScroll=window.frameElement.closest('[data-testid="stMain"]');
+    if(hostScroll){document.body.classList.add('integrated');
+      const abort=new AbortController();
+      hostScroll.addEventListener('scroll',readProgress,{passive:true,signal:abort.signal});
+      const observer=new MutationObserver(()=>{if(!window.frameElement?.isConnected){abort.abort();observer.disconnect();}});
+      observer.observe(parent.document.body,{childList:true,subtree:true});
+      window.addEventListener('pagehide',()=>{abort.abort();observer.disconnect();},{once:true});
+      canvas.addEventListener('wheel',e=>{if(e.target===canvas){e.preventDefault();if(chapterAnimation)cancelAnimationFrame(chapterAnimation);hostScroll.scrollTop+=e.deltaY;}},{passive:false});
+      window.addEventListener('wheel',e=>{if(e.target.closest('dialog,select'))return;const section=e.target.closest('#circulation');if(section&&section.scrollHeight>section.clientHeight+1&&((e.deltaY>0&&section.scrollTop<section.scrollHeight-section.clientHeight-2)||(e.deltaY<0&&section.scrollTop>0)))return;if(e.target!==canvas){e.preventDefault();if(chapterAnimation)cancelAnimationFrame(chapterAnimation);hostScroll.scrollTop+=e.deltaY;}},{passive:false});
+      let touchY=null;
+      canvas.addEventListener('touchstart',e=>{touchY=e.touches[0].clientY;},{passive:true});
+      canvas.addEventListener('touchmove',e=>{if(currentProgress<.80&&touchY!==null){hostScroll.scrollTop+=touchY-e.touches[0].clientY;touchY=e.touches[0].clientY;}},{passive:true});
+    }
+  }
+}catch(error){console.info('Using standalone scroll',error);}
+window.addEventListener('scroll',readProgress,{passive:true});readProgress();
+const credits=document.getElementById('credits');
+document.getElementById('credits-open').onclick=()=>credits.showModal();
+document.getElementById('credits-close').onclick=()=>credits.close();
+function setPointer(e){const rect=canvas.getBoundingClientRect();pointer.x=e.clientX-rect.left;pointer.y=e.clientY-rect.top;pointer.inside=pointer.x>=0&&pointer.y>=0&&pointer.x<=viewportW&&pointer.y<=viewportH;}
+canvas.addEventListener('pointermove',e=>{
+  setPointer(e);
+  if(pointer.down&&currentProgress>.80){if(selectionAnimation)cancelAnimationFrame(selectionAnimation);const dx=e.clientX-pointer.lastX,dy=e.clientY-pointer.lastY;if(Math.abs(dx)+Math.abs(dy)>1)dragMoved=true;bottomYaw+=dx*.008;bottomPitch=clamp(bottomPitch+dy*.006,-1.05,1.05);}
+  pointer.lastX=e.clientX;pointer.lastY=e.clientY;
+},{passive:true});
+canvas.addEventListener('pointerdown',e=>{if(currentProgress>.80){pointer.down=true;dragMoved=false;pointer.lastX=e.clientX;pointer.lastY=e.clientY;try{canvas.setPointerCapture(e.pointerId);}catch(_){}}},{passive:true});
+canvas.addEventListener('pointerup',e=>{pointer.down=false;try{canvas.releasePointerCapture(e.pointerId);}catch(_){}},{passive:true});
+canvas.addEventListener('pointercancel',()=>{pointer.down=false;pointer.inside=false;},{passive:true});
+canvas.addEventListener('pointerleave',()=>{pointer.inside=false;},{passive:true});
+
+const fov=43*PI/180, cameraZ=6.15;
+function makeVP(camZ){return mMultiply(mPerspective(fov,viewportW/Math.max(1,viewportH),.08,140),mView(camZ));}
+function drawMesh(obj,vp,model,alpha=1){
+  if(!gl)return;
+  gl.useProgram(meshProgram);gl.bindBuffer(gl.ARRAY_BUFFER,obj.gl.p);gl.enableVertexAttribArray(meshA.p);gl.vertexAttribPointer(meshA.p,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,obj.gl.n);gl.enableVertexAttribArray(meshA.n);gl.vertexAttribPointer(meshA.n,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,obj.gl.ix);
+  gl.uniformMatrix4fv(meshU.uMVP,false,mMultiply(vp,model));gl.uniformMatrix4fv(meshU.uMV,false,mMultiply(mView(currentViewZ),model));gl.uniform3fv(meshU.uColor,obj.color);gl.uniform1f(meshU.uHighlight,obj.part===activePart?1:0);gl.uniform1f(meshU.uAlpha,alpha);gl.drawElements(gl.TRIANGLES,obj.gl.count,gl.UNSIGNED_SHORT,0);
+}
+let currentViewZ=cameraZ;
+function drawPoints(vp,model,alpha){
+  if(!gl)return;
+  gl.useProgram(pointProgram);gl.bindBuffer(gl.ARRAY_BUFFER,pointCloud.p);gl.enableVertexAttribArray(pointA.p);gl.vertexAttribPointer(pointA.p,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,pointCloud.n);gl.enableVertexAttribArray(pointA.n);gl.vertexAttribPointer(pointA.n,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,pointCloud.t);gl.enableVertexAttribArray(pointA.tone);gl.vertexAttribPointer(pointA.tone,1,gl.FLOAT,false,0,0);
+  gl.uniformMatrix4fv(pointU.uMVP,false,mMultiply(vp,model));gl.uniformMatrix4fv(pointU.uMV,false,mMultiply(mView(currentViewZ),model));gl.uniform1f(pointU.uPointSize,2.5*dpr);gl.uniform1f(pointU.uAlpha,alpha);gl.drawArrays(gl.POINTS,0,pointCloud.count);
+}
+function deformPointCloud(modelYaw,modelPitch,tx,ty,scale){
+  const targetStrength=(pointer.inside&&currentProgress<.29&&pointer.y<viewportH)?1:0;
+  topPressure += (targetStrength-topPressure)*(targetStrength?0.16:0.075);
+  if(topPressure<.002)topPressure=0;
+  const focal=(viewportH*.5)/Math.tan(fov*.5), camDist=cameraZ;
+  const wx=(pointer.x-viewportW*.5)*camDist/focal-tx;
+  const wy=(viewportH*.5-pointer.y)*camDist/focal-ty;
+  const wz=.18;
+  // Transform the pointer into model coordinates for local point displacement.
+  let px=wx,py=wy,pz=wz;
+  const cy=Math.cos(-modelYaw),sy=Math.sin(-modelYaw);let qx=cy*px+sy*pz,qz=-sy*px+cy*pz;px=qx;pz=qz;
+  const cx=Math.cos(-modelPitch),sx=Math.sin(-modelPitch);let qy=cx*py-sx*pz;qz=sx*py+cx*pz;py=qy;pz=qz;
+  px/=scale;py/=scale;pz/=scale;
+  const b=pointCloud.base,o=pointCloud.deformed;
+  const stride=softwareMode?2:1;
+  for(let i=0;i<pointCloud.count;i++){
+    const k=i*3,bx=b[k],by=b[k+1],bz=b[k+2];
+    if(stride===2 && (i%2)===1){o[k]=bx;o[k+1]=by;o[k+2]=bz;continue;}
+    const dx=bx-px,dy=by-py,dz=bz-pz,dxy=Math.sqrt(dx*dx+dy*dy),r=.265;
+    let w=0;
+    if(topPressure>0&&dxy<r*2.25&&Math.abs(dz)<.62){const fall=Math.exp(-(dxy*dxy)/(r*r*.45))*Math.exp(-(dz*dz)/.29);w=fall*topPressure;}
+    const inv=1/(dxy+.0001),push=Math.min(.085,w*.085);
+    o[k]=bx+(dx*inv)*push;o[k+1]=by+(dy*inv)*push;o[k+2]=bz+Math.min(.025,push*.30);
+  }
+  if(gl){gl.bindBuffer(gl.ARRAY_BUFFER,pointCloud.p);gl.bufferSubData(gl.ARRAY_BUFFER,0,pointCloud.deformed);}
+}
+function setCard(id){
+  if(!id){activePart=null;partCard.classList.remove('visible');pin.style.opacity='0';return;}
+  if(activePart!==id){activePart=id;const d=partDetails[id];const ix=hotSpots.findIndex(h=>h.id===id)+1;cardEyebrow.textContent=d.type;cardIndex.textContent=String(ix).padStart(2,'0')+' / '+String(hotSpots.length).padStart(2,'0');cardTitle.textContent=d.title;cardCopy.textContent=d.copy;cardFoot.textContent=d.foot;partCard.classList.add('visible');}
+}
+let lastPickKey='';
+function raycastModel(model) {
+  const tan=Math.tan(fov/2),aspect=viewportW/viewportH;
+  const worldRay=normalize([(pointer.x/viewportW*2-1)*tan*aspect,(1-pointer.y/viewportH*2)*tan,-1]);
+  const scale2=model[0]**2+model[1]**2+model[2]**2;
+  const o=[-model[12],-model[13],cameraZ-model[14]];
+  const origin=[0,1,2].map(i=>(model[i*4]*o[0]+model[i*4+1]*o[1]+model[i*4+2]*o[2])/scale2);
+  const dir=[0,1,2].map(i=>(model[i*4]*worldRay[0]+model[i*4+1]*worldRay[1]+model[i*4+2]*worldRay[2])/scale2);
+  let nearest=Infinity,hit=null;
+  for(const obj of anatomy) {
+    if(!partVisible(obj.part))continue;
+    const v=obj.mesh.positions,ix=obj.mesh.indices;
+    for(let k=0;k<ix.length;k+=3) {
+      const a=ix[k]*3,b=ix[k+1]*3,c=ix[k+2]*3;
+      const e1x=v[b]-v[a],e1y=v[b+1]-v[a+1],e1z=v[b+2]-v[a+2];
+      const e2x=v[c]-v[a],e2y=v[c+1]-v[a+1],e2z=v[c+2]-v[a+2];
+      const px=dir[1]*e2z-dir[2]*e2y,py=dir[2]*e2x-dir[0]*e2z,pz=dir[0]*e2y-dir[1]*e2x;
+      const det=e1x*px+e1y*py+e1z*pz;if(Math.abs(det)<1e-9)continue;
+      const inv=1/det,tx=origin[0]-v[a],ty=origin[1]-v[a+1],tz=origin[2]-v[a+2];
+      const u=(tx*px+ty*py+tz*pz)*inv;if(u<0||u>1)continue;
+      const qx=ty*e1z-tz*e1y,qy=tz*e1x-tx*e1z,qz=tx*e1y-ty*e1x;
+      const w=(dir[0]*qx+dir[1]*qy+dir[2]*qz)*inv;if(w<0||u+w>1)continue;
+      const t=(e2x*qx+e2y*qy+e2z*qz)*inv;
+      if(t>0&&t<nearest){nearest=t;hit=obj.part;}
+    }
+  }
+  return hit;
+}
+function updateHover(bottomModel,vp){
+  pin.style.opacity='0';
+  if(currentProgress<.80){setCard(null);return;}
+  if(selectedPart){setCard(selectedPart);return;}
+  if(!pointer.inside||pointer.down){setCard(null);lastPickKey='';return;}
+  const key=[pointer.x,pointer.y,bottomYaw,bottomPitch,viewportW,viewportH].join(',');
+  if(key===lastPickKey)return;lastPickKey=key;
+  setCard(raycastModel(bottomModel));
+}
+
+// Project a simplified triangle subset when WebGL is unavailable.
+const softwareFaces=[];
+function lowResolutionMesh(mesh,budget){
+  const rows=mesh.rows,cols=mesh.cols;
+  if(!rows||!cols)return mesh;
+  const sourceFaces=(rows-1)*(mesh.wrapCols?cols:cols-1)*2;
+  const factor=Math.max(1,Math.sqrt(sourceFaces/budget));
+  const outRows=Math.max(3,Math.min(rows,Math.round((rows-1)/factor)+1));
+  const outCols=Math.max(mesh.wrapCols?6:4,Math.min(mesh.wrapCols?cols:cols,Math.round((mesh.wrapCols?cols:cols-1)/factor)+(mesh.wrapCols?0:1)));
+  const pos=[],norm=[],idx=[];
+  for(let r=0;r<outRows;r++){
+    const sr=Math.round(r*(rows-1)/(outRows-1));
+    for(let c=0;c<outCols;c++){
+      const sc=mesh.wrapCols?Math.round(c*cols/outCols)%cols:Math.round(c*(cols-1)/(outCols-1));
+      const source=(sr*cols+sc)*3;
+      pos.push(mesh.positions[source],mesh.positions[source+1],mesh.positions[source+2]);
+      norm.push(mesh.normals[source],mesh.normals[source+1],mesh.normals[source+2]);
+    }
+  }
+  const columnCells=mesh.wrapCols?outCols:outCols-1;
+  for(let r=0;r<outRows-1;r++)for(let c=0;c<columnCells;c++){
+    const next=(c+1)%outCols,a=r*outCols+c,b=r*outCols+next,d=(r+1)*outCols+next,e=(r+1)*outCols+c;
+    idx.push(a,b,e,b,d,e);
+  }
+  return meshData(pos,norm,idx,outRows,outCols,mesh.wrapCols);
+}
+function buildSoftwareFaces(){
+  for(const obj of anatomy){
+    const faceCount=obj.mesh.indices.length/3;
+    let budget=250;
+    if(obj.part==='left-ventricle')budget=2600;
+    else if(obj.part==='right-ventricle')budget=1500;
+    else if(obj.part==='right-atrium'||obj.part==='left-atrium')budget=780;
+    else if(obj.part.includes('appendage'))budget=390;
+    else if(obj.part.includes('coronary'))budget=220;
+    else if(obj.part==='aorta')budget=440;
+    else if(obj.part==='pulmonary-trunk'||obj.part.includes('vena-cava'))budget=360;
+    obj._swMesh=lowResolutionMesh(obj.mesh,budget);
+    obj._swScreen=new Float32Array(obj._swMesh.positions.length);
+    const ind=obj._swMesh.indices;
+    for(let k=0;k<ind.length;k+=3)softwareFaces.push({obj,a:ind[k]*3,b:ind[k+1]*3,c:ind[k+2]*3});
+  }
+}
+if(softwareMode)buildSoftwareFaces();
+const swPointBuckets=Array.from({length:6},()=>Array.from({length:7},()=>[]));
+const swLight=normalize([-.36,.53,.77]);
+function swProjectWorld(x,y,z,camZ){const depth=camZ-z;if(depth<=.085)return null;const focal=(viewportH*.5)/Math.tan(fov*.5);return {x:viewportW*.5+x*focal/depth,y:viewportH*.5-y*focal/depth,depth};}
+function swTransformNormal(m,x,y,z){return normalize([m[0]*x+m[4]*y+m[8]*z,m[1]*x+m[5]*y+m[9]*z,m[2]*x+m[6]*y+m[10]*z]);}
+function softwareBackground(){
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=1;ctx.fillStyle='#030405';ctx.fillRect(0,0,viewportW,viewportH);
+  const grad=ctx.createRadialGradient(viewportW*.53,viewportH*.46,2,viewportW*.53,viewportH*.46,Math.max(viewportW,viewportH)*.72);grad.addColorStop(0,'#101316');grad.addColorStop(.42,'#07090b');grad.addColorStop(1,'#020304');ctx.fillStyle=grad;ctx.fillRect(0,0,viewportW,viewportH);
+}
+function softwarePointCloud(model,alpha){
+  for(const row of swPointBuckets)for(const bucket of row)bucket.length=0;
+  const p=pointCloud.deformed,n=pointCloud.normals,t=pointCloud.tone;
+  const focal=(viewportH*.5)/Math.tan(fov*.5),limit=softwareMode?2:1;
+  for(let i=0;i<pointCloud.count;i+=limit){
+    const k=i*3,x=p[k],y=p[k+1],z=p[k+2];
+    const wx=model[0]*x+model[4]*y+model[8]*z+model[12],wy=model[1]*x+model[5]*y+model[9]*z+model[13],wz=model[2]*x+model[6]*y+model[10]*z+model[14];
+    const depth=cameraZ-wz;if(depth<=.085)continue;
+    const sx=viewportW*.5+wx*focal/depth,sy=viewportH*.5-wy*focal/depth;
+    if(sx < -3||sx>viewportW+3||sy < -3||sy>viewportH+3)continue;
+    let nx=model[0]*n[k]+model[4]*n[k+1]+model[8]*n[k+2],ny=model[1]*n[k]+model[5]*n[k+1]+model[9]*n[k+2],nz=model[2]*n[k]+model[6]*n[k+1]+model[10]*n[k+2];
+    const nl=Math.hypot(nx,ny,nz)||1;nx/=nl;ny/=nl;nz/=nl;
+    const nd=Math.max(0,nx*swLight[0]+ny*swLight[1]+nz*swLight[2]);
+    const shade=(.38+t[i]*.62)*(.48+.53*nd+.08*Math.max(0,nz));
+    const lum=clamp(shade, .12,1);const bin=Math.min(6,Math.floor(lum*7));const depthBin=Math.min(5,Math.max(0,Math.floor((depth-4.8)/.42)));
+    swPointBuckets[depthBin][bin].push(sx,sy);
+  }
+  ctx.save();ctx.globalAlpha=alpha*.94;
+  const shades=[48,75,104,134,164,198,235];const radius=clamp(viewportH/850,.85,1.2);
+  for(let dz=5;dz>=0;dz--)for(let b=0;b<7;b++){
+    const a=swPointBuckets[dz][b];if(a.length===0)continue;
+    ctx.beginPath();for(let i=0;i<a.length;i+=2){ctx.moveTo(a[i]+radius,a[i]);ctx.arc(a[i],a[i+1],radius,0,Math.PI*2);}
+    const g=shades[b];ctx.fillStyle='rgb('+g+','+g+','+g+')';ctx.fill();
+  }
+  ctx.restore();
+}
+function softwareSolid(model,alpha){
+  const vertexCache=new Map();
+  for(const obj of anatomy){
+    const swMesh=obj._swMesh,src=swMesh.positions,out=obj._swScreen;const count=src.length/3;
+    for(let i=0;i<count;i++){
+      const k=i*3,x=src[k],y=src[k+1],z=src[k+2];
+      const wx=model[0]*x+model[4]*y+model[8]*z+model[12],wy=model[1]*x+model[5]*y+model[9]*z+model[13],wz=model[2]*x+model[6]*y+model[10]*z+model[14];
+      const q=swProjectWorld(wx,wy,wz,cameraZ);if(q){out[k]=q.x;out[k+1]=q.y;out[k+2]=q.depth;}else{out[k]=out[k+1]=out[k+2]=-9999;}
+    }
+  }
+  const faces=[];
+  for(const f of softwareFaces){if(!partVisible(f.obj.part))continue;const out=f.obj._swScreen;const ax=out[f.a],ay=out[f.a+1],ad=out[f.a+2],bx=out[f.b],by=out[f.b+1],bd=out[f.b+2],cx=out[f.c],cy=out[f.c+1],cd=out[f.c+2];
+    if(ad<0||bd<0||cd<0)continue;
+    if((Math.max(ax,bx,cx)<-4)||(Math.min(ax,bx,cx)>viewportW+4)||(Math.max(ay,by,cy)<-4)||(Math.min(ay,by,cy)>viewportH+4))continue;
+    const n=f.obj._swMesh.normals,na=f.a,nb=f.b,nc=f.c;
+    const nx=(n[na]+n[nb]+n[nc])/3,ny=(n[na+1]+n[nb+1]+n[nc+1])/3,nz=(n[na+2]+n[nb+2]+n[nc+2])/3;
+    const nw=swTransformNormal(model,nx,ny,nz);const diff=Math.max(0,dot(nw,swLight));const spec=Math.pow(Math.max(0,(nw[0]*-.13+nw[1]*.2+nw[2]*.97)),14)*.14;
+    const shade=.42+.53*diff+.09*Math.max(0,nw[2]);const col=f.obj.color;let rr,gg,bb;
+    if(f.obj.part===activePart){rr=8+14*shade;gg=160+85*shade;bb=170+85*shade;}else{rr=col[0]*shade*255+spec*255;gg=col[1]*shade*255+spec*255;bb=col[2]*shade*255+spec*255;}
+    const color='rgb('+Math.round(clamp(rr,0,255))+','+Math.round(clamp(gg,0,255))+','+Math.round(clamp(bb,0,255))+')';
+    faces.push({ax,ay,bx,by,cx,cy,depth:(ad+bd+cd)/3,color});
+  }
+  faces.sort((a,b)=>b.depth-a.depth);
+  ctx.save();ctx.globalAlpha=alpha;ctx.lineJoin='round';
+  for(const f of faces){ctx.beginPath();ctx.moveTo(f.ax,f.ay);ctx.lineTo(f.bx,f.by);ctx.lineTo(f.cx,f.cy);ctx.closePath();ctx.fillStyle=f.color;ctx.fill();}
+  ctx.restore();
+}
+function renderSoftware(p,topModel,topAlpha,bottomModel,bottomFade){
+  softwareBackground();
+  if(topAlpha>.003)softwarePointCloud(topModel,topAlpha);
+  if(bottomFade>.003)softwareSolid(bottomModel,bottomFade);
+}
+
+function render(now){
+  if(softwareMode && now-lastSoftwareFrame<36){requestAnimationFrame(render);return;}
+  if(softwareMode)lastSoftwareFrame=now;
+  const dt=lastTime?Math.min(.05,(now-lastTime)/1000):.016;lastTime=now;elapsed+=dt;
+  if(!reducedMotion)currentProgress=clamp(currentProgress,0,1);
+  const p=currentProgress;
+  const chapterOffset=p*2*viewportH;
+  const unitsPerPixel=2*cameraZ*Math.tan(fov/2)/viewportH;
+  const compact=viewportW<700;
+  const topTurn=clamp(p/.5,0,1),topAlpha=1-smooth(.44,.53,p);
+  const topYaw=topTurn*PI*2+(reducedMotion?0:elapsed*.055);
+  const topX=(compact?0:1.03)+15*unitsPerPixel,topY=(compact?.65:-.08)+chapterOffset*unitsPerPixel,topScale=compact?.90:1.125;
+  const topModel=modelMatrix(topYaw,.08+(reducedMotion?0:0.025*Math.sin(elapsed*.6)),topScale,topX,topY,0);
+  const bottomFade=smooth(.54,.66,p);
+  const topVP=makeVP(cameraZ),bottomVP=makeVP(cameraZ);
+  const atlasOffset=(2*viewportH-chapterOffset)*unitsPerPixel;
+  const selected=anatomy.find(o=>o.part===selectedPart);
+  const focus=selected&&(selected.internal||selectedPart==='left-ventricle'||selectedPart==='right-ventricle')?selected.focus:null;
+  const atlasScale=(compact?Math.min(.62,Math.max(.27,(viewportH-540)/550)):.80)*(focus?Math.min(3,2.6/Math.max(.1,focus.size)):1);
+  let bottomModel=modelMatrix(bottomYaw,bottomPitch,atlasScale,compact?0:.65,(compact?-.04:-.12)-atlasOffset,0);
+  if(focus)bottomModel=mMultiply(bottomModel,mTranslate(-focus.center[0],-focus.center[1],-focus.center[2]));
+  if(topAlpha>.005&&!reducedMotion)deformPointCloud(topYaw,.08+0.025*Math.sin(elapsed*.6),topX,topY,topScale);
+  if(gl){
+    gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.disable(gl.CULL_FACE);gl.clearColor(.009,.011,.014,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    if(topAlpha>.005){currentViewZ=cameraZ;drawPoints(topVP,topModel,topAlpha);}
+    if(bottomFade>.004){currentViewZ=cameraZ;for(const o of anatomy)if(partVisible(o.part))drawMesh(o,bottomVP,bottomModel,bottomFade);}
+  } else {
+    renderSoftware(p,topModel,topAlpha,bottomModel,bottomFade);
+  }
+  updateHover(bottomModel,bottomVP);
+
+  heroUI.style.transform='translate3d(0,'+(-chapterOffset)+'px,0)';
+  heroUI.style.opacity=p<.55?'1':'0';heroUI.inert=p>.49;
+  circulation.hidden=false;
+  circulation.style.transform='translate3d(0,'+(viewportH-chapterOffset)+'px,0)';
+  circulation.inert=p<.20||p>.85;
+  for(const element of [atlasControls,stageName,partCard])element.style.translate='0 '+(2*viewportH-chapterOffset)+'px';
+  for(const button of document.querySelectorAll('[data-progress]')) {const n=Number(button.dataset.progress),active=n===0?p<.25:n<1?p>=.25&&p<.75:p>=.75;if(active)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current');}
+  atlasControls.hidden=p<.60;
+  stageName.style.opacity=p>.60?'1':'0';
+  edgeMeta.style.opacity='1';bottomHint.style.opacity='0';
+  if(p<.25)phaseLabel.textContent='Point-cloud study';else if(p<.75)phaseLabel.textContent='Follow the blood';else phaseLabel.textContent=activePart?'Structure selected':'Anatomical atlas';
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+
+// Report the loaded structure count and active renderer.
+console.info('HEART 3D initialized:', anatomy.length, 'anatomical surfaces,', pointCloud.count.toLocaleString(), 'original point-cloud points, educational circulation chapter; renderer:', softwareMode?'Canvas 2D software 3D':'WebGL');
+})();
+</script>
+</body>
+</html>

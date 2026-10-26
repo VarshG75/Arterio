@@ -1,0 +1,3 @@
+# Preserve licensed SVGs and historical snapshots byte for byte.
+app_and_ml/assets/heart/references/*.svg -text -whitespace
+docs/reference/** -text -whitespace

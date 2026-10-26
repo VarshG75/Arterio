@@ -1,107 +1,115 @@
-"""
-video_pipeline.py — Part 2: Hardware Bridge (Shreyas / Person A)
-
-video file -> red-channel signal -> uniform sample rate -> math_engine -> dict
-"""
-
+"""Decode a bounded local recording and pass its optical trace to the math engine."""
 import cv2
 import numpy as np
-from scipy.interpolate import CubicSpline
 
-try:  # works whether imported from app.py's package path or run from this folder
-    from signal_processing.math_engine import bandpass_filter, detect_beats, compute_indices
-except ImportError:
-    from math_engine import bandpass_filter, detect_beats, compute_indices
-
-TARGET_FS = 100.0  # every video gets resampled to 100 samples/second
+from .capture_policy import (TARGET_FS, MAX_DURATION, SETTLING_SECONDS, RELEASE_SECONDS,
+                             duration_gate, duration_error)
+from .math_engine import clamp_and_validate_buffer, process_trimmed_signal, resample_signal
 
 
-def extract_red_signal(filepath: str):
-    """
-    Step 1: open the video and, for every frame, average the red channel.
-    Returns (times_sec, red_values). Uses each frame's real timestamp,
-    because phones don't always record at an exact, steady frame rate.
-    """
-    cap = cv2.VideoCapture(filepath)
-    if not cap.isOpened():
-        raise ValueError("Could not open the video. Try an .mp4 (H.264) file.")
-
-    nominal_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-    times, reds = [], []
-    frame_index = 0
-    while True:
-        ok, frame = cap.read()
-        if not ok:
-            break
-        t_ms = cap.get(cv2.CAP_PROP_POS_MSEC)
-        # OpenCV frames are B, G, R order -> red is channel index 2
-        reds.append(float(frame[:, :, 2].mean()))
-        times.append(t_ms / 1000.0 if t_ms and t_ms > 0 else frame_index / nominal_fps)
-        frame_index += 1
-    cap.release()
-
-    times = np.asarray(times)
-    reds = np.asarray(reds)
-    # timestamps must strictly increase for the spline; fall back to a steady clock if not
-    if len(times) < 2 or np.any(np.diff(times) <= 0):
-        times = np.arange(len(reds)) / nominal_fps
-    return times, reds
-
-
-def resample_uniform(times: np.ndarray, values: np.ndarray, target_fs: float = TARGET_FS):
-    """
-    Step 2: fit a smooth cubic-spline curve through the samples, then read it
-    off at perfectly even spacing (target_fs times per second).
-    """
-    t_new = np.arange(times[0], times[-1], 1.0 / target_fs)
-    return CubicSpline(times, values)(t_new)
-
-
-def analyze_live_video(filepath: str) -> dict:
-    """The one function Varsh's app calls. Returns a dict (see keys below)."""
-    empty = {"heart_rate_bpm": None, "stiffness_index": None,
-             "reflection_index": None, "clean_wave_array": [],
-             "raw_wave_array": [], "beat_indices": [],
-             "sample_rate_hz": TARGET_FS, "quality": "error", "message": ""}
+def video_metadata(filepath):
+    cap = cv2.VideoCapture(str(filepath))
     try:
-        times, reds = extract_red_signal(filepath)
-    except ValueError as e:
-        empty["message"] = str(e)
-        return empty
+        if not cap.isOpened():
+            raise ValueError('Could not open the video. Try an original H.264 MP4 or MOV file.')
+        fps = float(cap.get(cv2.CAP_PROP_FPS))
+        fallback = not np.isfinite(fps) or fps <= 0
+        fps = 30.0 if fallback else fps
+        count = float(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if not np.isfinite(count) or count < 1 or fps > 240:
+            raise ValueError('Video timing metadata is invalid. Export an original 30 or 60 FPS recording.')
+        return dict(fps=fps, fps_fallback=fallback, frames=int(count), duration=count / fps,
+                    width=int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), height=int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    finally:
+        cap.release()
 
-    duration = times[-1] - times[0] if len(times) > 1 else 0
-    if duration < 5:
-        empty["message"] = "Video too short — record at least 10 seconds."
-        return empty
 
-    # Quality check: no finger on the lens / no flash => red channel too dark
-    # or barely changing at all.
-    if reds.mean() < 100 or np.ptp(reds) < 0.2:
-        empty["quality"] = "bad"
-        empty["message"] = "Signal too weak — cover the camera AND flash fully with your fingertip."
-        return empty
+def mean_red_channel(frame):
+    """Sample a regular pixel grid; retain every pixel in small frames."""
+    stride = 4 if min(frame.shape[:2]) >= 64 else 1
+    return float(frame[::stride, ::stride, 2].mean())
 
-    raw = resample_uniform(times, reds)
-    clean = bandpass_filter(raw, fs=TARGET_FS)
-    if len(clean) > 4 * TARGET_FS:  # trim 1s of filter edge effects from both ends
-        trim = int(TARGET_FS)
-        raw, clean = raw[trim:-trim], clean[trim:-trim]
-    raw = raw - raw.mean()  # center for plotting
-    beats = detect_beats(clean, fs=TARGET_FS)
 
-    if len(beats) < 3:
-        empty["quality"] = "bad"
-        empty["message"] = "Couldn't find enough heartbeats — hold still and retry."
-        return empty
+def extract_red_signal(filepath, metadata=None):
+    """Decode at most 25 seconds; release the decoder even when a frame fails."""
+    metadata = metadata or video_metadata(filepath)
+    fps = metadata['fps']
+    cap = cv2.VideoCapture(str(filepath))
+    try:
+        if not cap.isOpened():
+            raise ValueError('Could not open the video.')
+        times, reds = [], []
+        for _ in range(int(MAX_DURATION * fps)):
+            ok, frame = cap.read()
+            if not ok:
+                break
+            times.append(cap.get(cv2.CAP_PROP_POS_MSEC) / 1000)
+            reds.append(mean_red_channel(frame))
+        times, reds = np.asarray(times), np.asarray(reds)
+        if len(reds) < 2:
+            raise ValueError('No usable video frames. Try an original H.264 MP4.')
+        if not np.isfinite(times).all() or np.any(np.diff(times) <= 0):
+            times = np.arange(len(reds)) / fps
+        return times - times[0], reds
+    finally:
+        cap.release()
 
-    bpm = float(60.0 / np.mean(np.diff(beats) / TARGET_FS))
-    si, ri = compute_indices(clean, beats, fs=TARGET_FS)
-    return {"heart_rate_bpm": round(bpm, 1),
-            "stiffness_index": None if si is None else round(si, 3),
-            "reflection_index": None if ri is None else round(ri, 3),
-            "clean_wave_array": clean.tolist(),
-            "raw_wave_array": raw.tolist(),
-            "beat_indices": beats.tolist(),
-            "sample_rate_hz": TARGET_FS,
-            "quality": "good" if si is not None else "partial",
-            "message": f"{len(beats)} beats analyzed over {duration:.0f}s"}
+
+def resample_uniform(times, values, target_fs=TARGET_FS):
+    return resample_signal(values, TARGET_FS, target_fs, source_times=times)[1]
+
+
+def analyze_live_video(filepath, *, allow_short=False, height_m=1.75):
+    """Short clips require explicit consent. Errors never receive invented metrics."""
+    result = dict(heart_rate_bpm=None, stiffness_index=None, reflection_index=None,
+                  clean_wave_array=[], raw_wave_array=[], beat_indices=[], feet_indices=[],
+                  sample_rate_hz=TARGET_FS, quality='error', message='', warnings=[])
+    try:
+        metadata = video_metadata(filepath)
+        duration = metadata['duration']
+        result.update(recorded_duration=duration, is_short_duration=duration < 20, capture_metadata=metadata)
+        gate = duration_gate(duration)
+        if gate == 'reject':
+            raise ValueError(duration_error(duration))
+        if gate == 'hold' and not allow_short:
+            result.update(quality='hold', message='Record 20–25 seconds, or explicitly proceed with this shorter window.')
+            return result
+        times, reds = extract_red_signal(filepath, metadata)
+        decoded_duration = len(reds) / metadata['fps']
+        actual_duration = min(duration, decoded_duration) if decoded_duration < MAX_DURATION else duration
+        if duration_gate(actual_duration) == 'reject':
+            raise ValueError(duration_error(actual_duration))
+        if actual_duration < 20 and not allow_short:
+            result.update(quality='hold', recorded_duration=actual_duration, is_short_duration=True,
+                          message='Decoded footage is shorter than its metadata. Please confirm the reduced window or replace the clip.')
+            return result
+        values, fps, quality = clamp_and_validate_buffer(reds, metadata['fps'])
+        first = int(np.ceil(SETTLING_SECONDS * fps))
+        last = len(reds) - int(np.ceil(RELEASE_SECONDS * fps))
+        processed = process_trimmed_signal(values, fps, height_m, times[first:last])
+        quality.update(recorded_duration=actual_duration, is_short_duration=actual_duration < 20,
+                       was_clamped=duration > MAX_DURATION, fps_fallback=metadata['fps_fallback'])
+        warnings = list(processed['timing_warnings'])
+        if quality['motion_warning']:
+            warnings.append('SIGNIFICANT MOTION ARTIFACT IDENTIFIED. Keep your hand still on a flat desk. Abrupt signal changes can also come from exposure adjustments.')
+        if quality['was_clamped']:
+            warnings.append('Only the first 25 seconds were decoded; the 2-second start and 1-second end trims apply to that segment.')
+        if quality['fps_fallback']:
+            warnings.append('Frame rate was missing. A 30 FPS fallback was used; timing estimates may be inaccurate. Re-export at a known frame rate.')
+        if processed['accepted_beats'] < 10:
+            warnings.append('Fewer than 10 repeatable beat segments remained. Record another steady 20–25 second clip for a longer sample.')
+        result.update(quality, heart_rate_bpm=processed['bpm'], stiffness_index=processed['si'],
+                      reflection_index=processed['ri'], ba_ratio=processed['ba_ratio'], sqi_score=processed['sqi_score'],
+                      clean_wave_array=processed['clean_signal'].tolist(), raw_wave_array=processed['raw_signal'].tolist(),
+                      time_axis=processed['time_axis'].tolist(), beat_indices=processed['peaks'].tolist(),
+                      feet_indices=processed['feet'].tolist(), vpg_array=processed['vpg'].tolist(), apg_array=processed['apg'].tolist(),
+                      detrended_array=processed['detrended_signal'].tolist(), accepted_beats=processed['accepted_beats'],
+                      reflection_beats=processed['reflection_beats'], reflection_records=processed['reflection_records'],
+                      latency_ms=processed['latency_ms'], height_m=height_m, status=processed['status'], warnings=warnings,
+                      interval_cv=processed['interval_cv'], timing_quality=processed['timing_quality'],
+                      quality='good' if processed['status'] == 'OK' else 'partial',
+                      message='Waveform processing complete.' if processed['status'] == 'OK' else
+                      'A repeatable secondary landmark could not be measured in at least four beats. Missing metrics are left blank.')
+    except (ValueError, cv2.error, OSError) as error:
+        result['message'] = str(error)
+    return result

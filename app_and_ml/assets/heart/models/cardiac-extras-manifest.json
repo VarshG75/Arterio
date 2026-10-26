@@ -1,0 +1,327 @@
+{
+  "dataset": "BodyParts3D 4.0",
+  "archive": "isa_BP3D_4.0_obj_99.zip",
+  "source": "https://dbarchive.biosciencedbc.jp/data/bodyparts3d/LATEST/isa_BP3D_4.0_obj_99.zip",
+  "license": "CC BY 4.0",
+  "transform": "[x,z,-y] at scale .02 after subtracting upstream center",
+  "verification": "Official ZIP central-directory CRC checked per downloaded file; full archive checksum not checked.",
+  "display_bounds": {
+    "x": [
+      -1.35,
+      1.35
+    ],
+    "y": [
+      -1.45,
+      1.8
+    ],
+    "z": [
+      -1.2,
+      1.4
+    ]
+  },
+  "vessel_processing": "Plane-clipped triangles; largest connected component per source element; pulmonary artery proximal bounds x\u00b11.05, y .1\u20131.35, z -1.1\u2013.7",
+  "structures": [
+    {
+      "id": "coronary-sinus",
+      "name": "Coronary sinus",
+      "internal": false,
+      "vertices": 314,
+      "triangles": 624,
+      "source_elements": [
+        {
+          "id": "FJ2655",
+          "sha256": "6095f578e12b9a85dcf978692793f775494086ab09b7eb44e6a069049640bd82"
+        }
+      ]
+    },
+    {
+      "id": "great-cardiac-vein",
+      "name": "Great cardiac vein",
+      "internal": false,
+      "vertices": 415,
+      "triangles": 826,
+      "source_elements": [
+        {
+          "id": "FJ2656",
+          "sha256": "cb9c6b4e10e43c92c8ea4e2e1a66215d98cf58d72fcc60aeadc8a0f87f6724fc"
+        }
+      ]
+    },
+    {
+      "id": "middle-cardiac-vein",
+      "name": "Middle cardiac vein",
+      "internal": false,
+      "vertices": 2342,
+      "triangles": 4628,
+      "source_elements": [
+        {
+          "id": "FJ2678",
+          "sha256": "20a71237bc8a3b211c244e0695c1a6242abb3f684275c0b01061439c92b72ef7"
+        },
+        {
+          "id": "FJ2679",
+          "sha256": "754d84b147f9a8ba3eb7aa0cb434a74a7c047354bb689e8e89de6e4f0160f737"
+        },
+        {
+          "id": "FJ2680",
+          "sha256": "29c830d98097500bb09a506b05275942574a5ea9b18ad58e51bc5b7313f0ed8b"
+        },
+        {
+          "id": "FJ2681",
+          "sha256": "cfb2b3134737d33591f2518ce6338498d8c3a32cb0dbc93cfcd9c88b8c4996d5"
+        },
+        {
+          "id": "FJ2682",
+          "sha256": "1122684d5da8ea6953d03836244552fd33287185304d74e2a0e395f691e323e6"
+        },
+        {
+          "id": "FJ2683",
+          "sha256": "02757805e2e956e4a4425b2c54db8b54ee69f5f97da5aa63ca0cd12c4b159b1e"
+        },
+        {
+          "id": "FJ2684",
+          "sha256": "25a39f3d42a46af2008f426def111b4af3add424dc327543e51b2c7fa67f3d95"
+        },
+        {
+          "id": "FJ2685",
+          "sha256": "578c2f788d36149f535210004762558a7e533cc42c121d26a8f418cb04142263"
+        },
+        {
+          "id": "FJ2686",
+          "sha256": "172e06e35489ae2657678c6d340eace2daed2fb2329324aa40c48824b0e99666"
+        },
+        {
+          "id": "FJ2687",
+          "sha256": "56fa04e9a81334e4492f94eb51ff810f47c786581f098d69083013f4c9ae2a62"
+        },
+        {
+          "id": "FJ2688",
+          "sha256": "79e05aae03bab74714440fd5d4941f67b969293d57be99c6758c61fa15452e7b"
+        },
+        {
+          "id": "FJ2689",
+          "sha256": "2a5596c4d908ff4c6bbe50d36c18759753e9dc5fa9b10029ec7f91ca8a2b5f04"
+        },
+        {
+          "id": "FJ2690",
+          "sha256": "0914e4188f4952d2325f962dd97336d1b55ed40dd8532db46c9309975157f57f"
+        },
+        {
+          "id": "FJ2691",
+          "sha256": "e50b042a1f7e034839c5180a9fdfbf0165a57ce19d02dc0092166d7e6772cb63"
+        }
+      ]
+    },
+    {
+      "id": "tricuspid-valve",
+      "name": "Tricuspid valve",
+      "internal": true,
+      "vertices": 9602,
+      "triangles": 17612,
+      "source_elements": [
+        {
+          "id": "FJ2421",
+          "sha256": "7303c55e6d9c2e294759f7f7e01d23fc120eba74bce9ade0a01cc4bdb2bd4200"
+        },
+        {
+          "id": "FJ2433",
+          "sha256": "6519afbf9aa2eb3c0dc25d8e332a0208fd2ad68956c1dfe1ef6b010f04984d55"
+        },
+        {
+          "id": "FJ2436",
+          "sha256": "f0572079c56ea2a00eff869b07c4910defd624c5bda3fddd2403e4f1831f6be1"
+        }
+      ]
+    },
+    {
+      "id": "mitral-valve",
+      "name": "Mitral valve",
+      "internal": true,
+      "vertices": 6612,
+      "triangles": 11378,
+      "source_elements": [
+        {
+          "id": "FJ2420",
+          "sha256": "f0294cbbd35096d1df5e8bdc92f17dbed5ebf981e62024a07e7ca18e31eb1a94"
+        },
+        {
+          "id": "FJ2432",
+          "sha256": "0b296151ecceff395da5c435bcf65cf6dfca390e72eb0be71d778fee84bc216b"
+        }
+      ]
+    },
+    {
+      "id": "aortic-valve",
+      "name": "Aortic valve",
+      "internal": true,
+      "vertices": 1249,
+      "triangles": 2150,
+      "source_elements": [
+        {
+          "id": "FJ2426",
+          "sha256": "86fa5ef6decf47a91d33f826e1b5579bbecd94795c206b2d797f52c36c3e1020"
+        },
+        {
+          "id": "FJ2431",
+          "sha256": "40ae6e23decbb5fe2ea3800d44d517302f219078266abd8dcbc7d86ebc246799"
+        },
+        {
+          "id": "FJ2435",
+          "sha256": "b498ef286aa1ba0bfeaf2114298f43078007beab66fc81f422ff6017c309bd7a"
+        }
+      ]
+    },
+    {
+      "id": "pulmonary-valve",
+      "name": "Pulmonary valve",
+      "internal": true,
+      "vertices": 2050,
+      "triangles": 3638,
+      "source_elements": [
+        {
+          "id": "FJ2417",
+          "sha256": "12d2dccc78efa7d21f6f4af53ae08603be473613ec4e04b0beb9c0239b96da56"
+        },
+        {
+          "id": "FJ2427",
+          "sha256": "eb867fa648f3da04036d925e6a740d4e3a922b893d74a20dec40d8d763a18414"
+        },
+        {
+          "id": "FJ2434",
+          "sha256": "ed432a90e8fbfe9742d524044c0bd20c165f2a9a820ee585f00635cc47c5b5c0"
+        }
+      ]
+    },
+    {
+      "id": "inferior-vena-cava",
+      "name": "Inferior vena cava",
+      "internal": false,
+      "vertices": 483,
+      "triangles": 869,
+      "source_elements": [
+        {
+          "id": "FJ3441",
+          "sha256": "7b03ef0464b622d0a839c3c55aedcec2a713b4399112e7ce6efa1ac51861b606"
+        }
+      ]
+    },
+    {
+      "id": "right-superior-pulmonary-vein",
+      "name": "Right superior pulmonary vein",
+      "internal": false,
+      "vertices": 164,
+      "triangles": 324,
+      "source_elements": [
+        {
+          "id": "FJ3020",
+          "sha256": "074ba67bb3db8f93d6ac7d4e9d2bd1ddcca6e54a2bcb765ec146a9fd30bb3aa8"
+        }
+      ]
+    },
+    {
+      "id": "right-inferior-pulmonary-vein",
+      "name": "Right inferior pulmonary vein",
+      "internal": false,
+      "vertices": 100,
+      "triangles": 196,
+      "source_elements": [
+        {
+          "id": "FJ3040",
+          "sha256": "2e15b98f227f16c3dcacab1a93a26d42e07cd2c2d72ba34b1ef438396f598a12"
+        }
+      ]
+    },
+    {
+      "id": "left-superior-pulmonary-vein",
+      "name": "Left superior pulmonary vein",
+      "internal": false,
+      "vertices": 209,
+      "triangles": 414,
+      "source_elements": [
+        {
+          "id": "FJ2925",
+          "sha256": "e87124704e4ca94bfe3206a571e464fe8ccc41afe0f36ee5ccf46cf00aaf4918"
+        }
+      ]
+    },
+    {
+      "id": "left-inferior-pulmonary-vein",
+      "name": "Left inferior pulmonary vein",
+      "internal": false,
+      "vertices": 157,
+      "triangles": 310,
+      "source_elements": [
+        {
+          "id": "FJ2944",
+          "sha256": "a531b898f54ae008b1ad0c0f0993158e1a15cfbebee79098033ea8c2d2f84372"
+        }
+      ]
+    },
+    {
+      "id": "brachiocephalic-trunk",
+      "name": "Brachiocephalic trunk",
+      "internal": false,
+      "vertices": 99,
+      "triangles": 163,
+      "source_elements": [
+        {
+          "id": "FJ3417",
+          "sha256": "285df2b5ecb7881756e36645ca21e2cd825863f420c813a673eb6514c93f9156"
+        }
+      ]
+    },
+    {
+      "id": "left-common-carotid",
+      "name": "Left common carotid artery",
+      "internal": false,
+      "vertices": 50,
+      "triangles": 80,
+      "source_elements": [
+        {
+          "id": "FJ3483",
+          "sha256": "19f38e57365867279705090994fff228177163c1920ad0f8f9b15f830a42bc1d"
+        }
+      ]
+    },
+    {
+      "id": "left-subclavian",
+      "name": "Left subclavian artery",
+      "internal": false,
+      "vertices": 98,
+      "triangles": 160,
+      "source_elements": [
+        {
+          "id": "FJ3479",
+          "sha256": "f6af4efb94e1ce94519c94684b1d0a0736272e5a0ed2677a63627e0ebfc228b1"
+        }
+      ]
+    },
+    {
+      "id": "right-pulmonary-artery",
+      "name": "Right pulmonary artery",
+      "internal": false,
+      "vertices": 256,
+      "triangles": 471,
+      "source_elements": [
+        {
+          "id": "FJ3019",
+          "sha256": "c773fc2d3d3f79544699c16f38f56619730a6d5a1a2c8bb4d8f0dc2ab6889d97"
+        }
+      ]
+    },
+    {
+      "id": "left-pulmonary-artery",
+      "name": "Left pulmonary artery",
+      "internal": false,
+      "vertices": 2371,
+      "triangles": 4661,
+      "source_elements": [
+        {
+          "id": "FJ2924",
+          "sha256": "0cb5312cf816387fdad0d3809a5b5cae1445806ce85546adea39240bc72d2580"
+        }
+      ]
+    }
+  ],
+  "runtime_sha256": "57a58bd4652d41362dd118529b2bc930b9ea840fe7ce2a4fea57e3cdb60f84b0"
+}

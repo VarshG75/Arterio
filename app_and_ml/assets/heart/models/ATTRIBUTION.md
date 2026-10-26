@@ -1,0 +1,16 @@
+# Anatomical atlas mesh
+
+BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International.
+
+- Source dataset: [BodyParts3D 4.0](https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html).
+- License: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), per the [official archive license](https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html).
+- Model subset prepared by [OrganUI](https://github.com/organui/heart-3d), pinned revision `c72ce6654ff8e282942f97750d3104f55ef4fc3d`.
+- Download: https://cdn.jsdelivr.net/gh/organui/heart-3d@c72ce6654ff8e282942f97750d3104f55ef4fc3d/public/models/heart.glb
+- Retrieved for ARTERIO: October 25, 2026.
+- SHA-256: `b80a727d022a4ab07ccfcf15caccc228eaccb6d69ec0e72923324946ac35a946`, matches the pinned upstream manifest included alongside the asset.
+
+OrganUI selected and grouped source meshes, triangulated faces, recentered and uniformly scaled coordinates, changed axes to Y-up, recomputed smooth normals, assigned display colors, and converted OBJ to GLB. Their source record is [MODEL_PROVENANCE.md](https://github.com/organui/heart-3d/blob/c72ce6654ff8e282942f97750d3104f55ef4fc3d/docs/MODEL_PROVENANCE.md). Original OBJ headers cite an older CC BY-SA 2.1 Japan notice; this distribution follows the archive's current CC BY 4.0 grant documented by the preparer and verified on the official license page.
+
+The GLB remains unchanged on disk. At runtime, all atlas positions receive the same illustrative x/y/z scale of 0.86/1.12/0.94, with inverse-scaled normals, to narrow and elongate the display at the user’s request. These adapted display proportions are not intended for anatomical measurement. Its custom decoder deinterleaves position/normal data and converts valid triangle indices to 16-bit buffers for WebGL. Display materials are white tissue and grey coronary vessels with cyan selection. Cavity surfaces are hidden from the normal external view and isolated when selected. The ventricular wall remains combined. Seventeen source-mapped structures are bundled separately in `cardiac-extras.json`: four valve assemblies, inferior vena cava, four pulmonary vein segments, three aortic arch branches two proximal pulmonary arteries, the coronary sinus, great cardiac vein and middle cardiac vein. These additions come directly from the official BodyParts3D 4.0 IS-A 99% OBJ archive under the same CC BY 4.0 license. `cardiac-extras-manifest.json` records individual source IDs, source-file SHA-256 values and the runtime payload hash. Each fetched ZIP entry was checked against its central-directory CRC; the full archive checksum was not verified. `scripts/prepare_heart_extras.py` applies the upstream uniform coordinate transform, clips vessel triangles at display planes, retains the largest connected segment of each source element and recomputes normals. No vessel end caps or invented anatomy are added.
+
+The opening point-cloud heart retains ARTERIO's prior procedural design and is separate from the reference atlas. The source model is simplified: truncated vessels and omitted structures; no clinical review or patient-specific fidelity is claimed. Dataset and preparer do not endorse ARTERIO. Model-derived screenshots retain the model credit and license.

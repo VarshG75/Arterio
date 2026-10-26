@@ -1,0 +1,47 @@
+<!doctype html><html><body><script>
+(()=>{
+ const host=parent.document,scope=parent,root=host.querySelector('.arterio-dossier');
+ if(!root)return;
+ const scroll=window.frameElement.closest('[data-testid="stMain"]');if(!scroll)return;
+ const stages=[...root.querySelectorAll('.dossier-stage')],cards=stages.map(s=>s.firstElementChild),links=[...root.querySelectorAll('[data-stage-link]')];
+ const layer=root.querySelector('.dossier-connections'),story=root.querySelector('.dossier-story');
+ const ns='http://www.w3.org/2000/svg';
+ function element(tag,attrs){const el=host.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);return el;}
+ const svg=element('svg',{'aria-hidden':'true'});layer.replaceChildren(svg);
+ const wires=stages.slice(1).map(()=>{const base=element('path',{class:'dossier-wire'}),lit=element('path',{class:'dossier-wire-lit'});svg.append(base,lit);return {base,lit};});
+ const dot=element('circle',{class:'dossier-path-dot',r:5});svg.append(dot);
+ const reduced=scope.matchMedia('(prefers-reduced-motion: reduce)'),abort=new AbortController();let frame=null,geometry=[];
+ const clamp=x=>Math.max(0,Math.min(1,x));
+ function layout(){
+  const sr=story.getBoundingClientRect(),mobile=scope.innerWidth<=700;
+  svg.setAttribute('viewBox',`0 0 ${sr.width} ${sr.height}`);
+  geometry=wires.map((wire,i)=>{
+   // Use layout offsets: reveal transforms must never move the connector endpoints.
+   const a=cards[i],b=cards[i+1],sa=stages[i],sb=stages[i+1];
+   const y0=sa.offsetTop+a.offsetHeight*.62,y1=sb.offsetTop;
+   const ax=sa.offsetLeft+a.offsetLeft,bx=sb.offsetLeft+b.offsetLeft;
+   const x0=ax+(i%2===0?a.offsetWidth:0),x1=bx+b.offsetWidth*.5;
+   let d;
+   if(mobile){const x=5,r=12;d=`M ${ax} ${y0} H ${x+r} Q ${x} ${y0} ${x} ${y0+r} V ${y1+28-r} Q ${x} ${y1+28} ${x+r} ${y1+28} H ${bx}`;}
+   else{const direction=x1>x0?1:-1,r=Math.min(24,Math.abs(x1-x0)/2);d=`M ${x0} ${y0} H ${x1-direction*r} Q ${x1} ${y0} ${x1} ${y0+r} V ${y1}`;}
+   wire.base.setAttribute('d',d);wire.lit.setAttribute('d',d);
+   const length=wire.base.getTotalLength();wire.lit.style.strokeDasharray=length;return {...wire,length,y0,y1:mobile?y1+28:y1};
+  });request();
+ }
+ function update(){
+  frame=null;if(!root.isConnected)return;
+  const h=scope.innerHeight,anchor=Math.min(h*.53,440),sr=story.getBoundingClientRect(),y=anchor-sr.top;let active=0,point=null;
+  stages.forEach((stage,i)=>{const rect=stage.getBoundingClientRect();const reveal=reduced.matches?1:clamp((h*.94-rect.top)/(h*.34));cards[i].style.setProperty('--reveal',reveal.toFixed(4));if(rect.top<anchor+100)active=i;});
+  geometry.forEach((wire,i)=>{const p=clamp((y-wire.y0)/(wire.y1-wire.y0));wire.lit.style.strokeDashoffset=wire.length*(1-p);if(y>=wire.y0||i===0)point=wire.base.getPointAtLength(wire.length*p);});
+  if(point){dot.setAttribute('cx',point.x);dot.setAttribute('cy',point.y);dot.style.opacity=y<geometry[0].y0?0:1;}
+  links.forEach((link,i)=>{if(i===active)link.setAttribute('aria-current','step');else link.removeAttribute('aria-current');});
+ }
+ function request(){if(frame===null)frame=scope.requestAnimationFrame(update);}
+ scroll.addEventListener('scroll',request,{passive:true,signal:abort.signal});scope.addEventListener('resize',layout,{passive:true,signal:abort.signal});
+ links.forEach(link=>link.addEventListener('click',event=>{event.preventDefault();const stage=stages[Number(link.dataset.stageLink)],offset=scope.innerWidth<1200?215:180;scroll.scrollTo({top:scroll.scrollTop+stage.getBoundingClientRect().top-scroll.getBoundingClientRect().top-offset,behavior:reduced.matches?'instant':'smooth'});},{signal:abort.signal}));
+ const resize=new ResizeObserver(layout);stages.forEach(s=>resize.observe(s));
+ function cleanup(){abort.abort();resize.disconnect();observer.disconnect();if(frame!==null)scope.cancelAnimationFrame(frame);}
+ const observer=new MutationObserver(()=>{if(!root.isConnected)cleanup();});observer.observe(host.body,{childList:true,subtree:true});window.addEventListener('pagehide',cleanup,{once:true});
+ host.fonts.ready.then(()=>{if(root.isConnected)layout();});layout();
+})();
+</script></body></html>

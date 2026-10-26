@@ -1,191 +1,323 @@
-"""
-math_engine.py — Part 1: Core Math Engine (Shreyas / Person A)
-"""
+"""Optical waveform processing with explicit quality and missing-value handling."""
+from time import perf_counter
 
 import numpy as np
 from scipy import signal as sp_signal
+from scipy.interpolate import PchipInterpolator
+from scipy.ndimage import uniform_filter1d
+
+try:
+    from .capture_policy import (MIN_DURATION, RECOMMENDED_DURATION, MAX_DURATION,
+                                 SETTLING_SECONDS, RELEASE_SECONDS, RED_MIN, RED_MAX,
+                                 TARGET_FS, duration_error, motion_quality)
+except ImportError:
+    from capture_policy import (MIN_DURATION, RECOMMENDED_DURATION, MAX_DURATION,
+                                SETTLING_SECONDS, RELEASE_SECONDS, RED_MIN, RED_MAX,
+                                TARGET_FS, duration_error, motion_quality)
 
 
-def bandpass_filter(raw_signal: np.ndarray, fs: float, lowcut: float = 0.5,
-                     highcut: float = 5.0, order: int = 3) -> np.ndarray:
-    """
-    Keep only the 0.5-5.0 Hz band (30-300 BPM) -- real heartbeats live here.
-    Removes breathing drift (too slow) and hand tremor/noise (too fast).
-
-    fs = sample rate of raw_signal, in Hz (samples per second).
-    """
-    nyquist = 0.5 * fs  # the highest frequency this sample rate can represent
-    low = lowcut / nyquist
-    high = highcut / nyquist
-    b, a = sp_signal.butter(order, [low, high], btype="band")
-    return sp_signal.filtfilt(b, a, raw_signal)  # filtfilt = zero phase shift
+def _values(values, minimum=2):
+    values = np.asarray(values, dtype=float)
+    if values.ndim != 1 or len(values) < minimum or not np.isfinite(values).all():
+        raise ValueError(f'Provide at least {minimum} finite one-dimensional samples.')
+    return values
 
 
-def detect_beats(clean_wave: np.ndarray, fs: float, max_bpm: float = 140) -> np.ndarray:
-    """
-    Find the systolic peaks (one per heartbeat) in the filtered wave.
-
-    distance  = minimum samples between two peaks, based on the fastest
-                heart rate we'll allow (max_bpm) -- prevents counting the
-                same beat's noise wiggle as a second beat.
-    prominence = how much a peak must stick up above its surroundings --
-                filters out small noise bumps that aren't real beats.
-    """
-    min_distance = int(fs * 60.0 / max_bpm)
-    peaks, _ = sp_signal.find_peaks(
-        clean_wave,
-        distance=max(min_distance, 1),
-        prominence=np.std(clean_wave) * 0.3,
-    )
-    return peaks
+def _rate(fs):
+    if not np.isfinite(fs) or fs <= 0:
+        raise ValueError('Sampling rate must be finite and positive.')
+    return float(fs)
 
 
-def second_derivative(clean_wave: np.ndarray, dt: float) -> np.ndarray:
-    """
-    The APG (Acceleration Photoplethysmogram): take the derivative twice.
-    Real PPG analysis uses this to sharpen subtle landmarks. We compute it
-    here (useful for your demo graph / write-up), even though the peak
-    search below works on the clean wave directly -- see the note in
-    compute_indices about why.
-    """
-    first_deriv = np.gradient(clean_wave, dt)
-    return np.gradient(first_deriv, dt)
+def clamp_and_validate_buffer(raw_frames, original_fps):
+    """Keep at most 25 seconds, then remove 2 seconds at entry and 1 at exit."""
+    values = _values(raw_frames)
+    try:
+        fps = float(original_fps)
+    except (TypeError, ValueError):
+        fps = float('nan')
+    fallback = not np.isfinite(fps) or fps <= 0
+    fps = 30.0 if fallback else fps
+    duration = len(values) / fps
+    if duration < MIN_DURATION:
+        raise ValueError(duration_error(duration))
+    values = values[:int(fps * MAX_DURATION)]
+    processed_duration = len(values) / fps
+    first = int(np.ceil(SETTLING_SECONDS * fps))
+    last = len(values) - int(np.ceil(RELEASE_SECONDS * fps))
+    values = _values(values[first:last])
+    mean_red = float(values.mean())
+    if mean_red > RED_MAX:
+        raise ValueError(f'OVEREXPOSED RECORDING: Mean red intensity {mean_red:.1f} > 250. '
+                         'Use light finger contact and check the camera exposure. Brightness alone cannot identify the cause.')
+    if mean_red < RED_MIN:
+        raise ValueError(f'INADEQUATE ILLUMINATION: Mean red intensity {mean_red:.1f} < 30. '
+                         'Check that the light is enabled and the finger pad covers the lens and light.')
+    if np.ptp(values) < .2:
+        raise ValueError('Signal too weak: no usable brightness variation. Re-record with steady, light contact.')
+    metadata = dict(recorded_duration=duration, processed_duration=processed_duration,
+                    usable_duration=len(values) / fps, is_short_duration=duration < RECOMMENDED_DURATION,
+                    was_clamped=duration > MAX_DURATION, fps_fallback=fallback, mean_red=mean_red,
+                    settling_seconds=SETTLING_SECONDS, release_seconds=RELEASE_SECONDS)
+    metadata.update(motion_quality(values, fps))
+    return values, fps, metadata
 
 
-def compute_indices(clean_wave: np.ndarray, beat_peaks: np.ndarray, fs: float):
-    """
-    For each beat (one systolic peak to the next), search the windowed
-    segment for the reflection bump and compute:
-      - Stiffness Index (SI):  1 / (delay as a FRACTION of that beat's
-        period) -- fraction, not raw seconds, so it isn't confounded by
-        heart-rate differences between beats or people.
-      - Reflection Index (RI): reflection bump height / systolic height.
+def resample_signal(raw_signal, original_fps, target_fs=TARGET_FS, *, source_times=None):
+    """PCHIP preserves sample shape; a denser grid adds no camera information."""
+    values = _values(raw_signal)
+    fps, target_fs = _rate(original_fps), _rate(target_fs)
+    source = np.arange(len(values)) / fps if source_times is None else _values(source_times)
+    if len(source) != len(values) or np.any(np.diff(source) <= 0):
+        raise ValueError('Source timestamps must be finite, increasing and match the signal.')
+    source = source - source[0]
+    target = np.arange(0, source[-1], 1 / target_fs)
+    return target, PchipInterpolator(source, values, extrapolate=False)(target)
 
-    NOTE on a mistake worth knowing about in advance: if you build a
-    synthetic test wave by adding two sine waves at the SAME frequency to
-    fake "systolic + reflection," you'll never get a real second peak --
-    two same-frequency sine waves just combine into one bigger/shifted
-    sine wave, mathematically. You need two separate bump shapes (see the
-    test below) for a genuine two-peak waveform to test against.
 
-    Also: if those bump shapes are too sharp/narrow, the bandpass filter
-    can "ring" (oscillate) after the sharp edge and create a FAKE extra
-    bump later in the cycle that looks like a reflection peak but isn't.
-    We guard against that by bounding the search window to the first
-    ~55% of each beat (see below) -- real reflection bumps show up in
-    roughly this range; filter ringing tends to show up later. Once
-    you're processing real video, always check that your extracted
-    Stiffness Index moves in the right direction on a wave you already
-    know the answer for, before trusting it on a real recording.
-    """
-    if len(beat_peaks) < 2:
-        return None, None
+def bandpass_filter(signal, fs=TARGET_FS, lowcut=.5, highcut=8.5, order=4):
+    """Apply a Butterworth bandpass as forward/backward second-order sections."""
+    values = _values(signal, 4)
+    fs = _rate(fs)
+    if not 0 < lowcut < highcut < fs / 2 or int(order) != order or order < 1:
+        raise ValueError('Filter cutoffs must lie below Nyquist and the order must be a positive integer.')
+    sos = sp_signal.butter(int(order), [lowcut, highcut], btype='bandpass', fs=fs, output='sos')
+    return sp_signal.sosfiltfilt(sos, values - values.mean(), padtype='odd',
+                                padlen=min(int(fs * 3), len(values) - 1))
 
-    si_values, ri_values = [], []
-    for i in range(len(beat_peaks) - 1):
-        start, end = beat_peaks[i], beat_peaks[i + 1]
-        period_samples = end - start
-        if period_samples < 8:
+
+def detrend_signal(clean_signal, fs=TARGET_FS, window_sec=.35):
+    """Subtract a reflected-edge moving mean; this also changes pulse morphology."""
+    values = _values(clean_signal)
+    fs = _rate(fs)
+    if not np.isfinite(window_sec) or window_sec <= 0:
+        raise ValueError('Detrending window must be positive.')
+    window = min(len(values), max(1, int(round(window_sec * fs))))
+    return values - uniform_filter1d(values, size=window, mode='reflect')
+
+
+def compute_smoothed_derivatives(signal, fs=TARGET_FS):
+    """Return VPG and APG using a 15-sample quadratic Savitzky–Golay fit."""
+    values = _values(signal, 3)
+    fs = _rate(fs)
+    if len(values) < 15:
+        vpg = np.gradient(values, 1 / fs)
+        return vpg, np.gradient(vpg, 1 / fs)
+    return tuple(sp_signal.savgol_filter(values, 15, 2, deriv=d, delta=1 / fs) for d in (1, 2))
+
+
+def detect_cardiac_cycles(detrended_wave, fs=TARGET_FS, max_bpm=160.0):
+    """Find candidate primary peaks and a preceding local foot for each."""
+    values = _values(detrended_wave, 3)
+    fs, max_bpm = _rate(fs), _rate(max_bpm)
+    peaks, _ = sp_signal.find_peaks(values, distance=max(1, int(fs * 60 / max_bpm)),
+                                    prominence=max(.25 * values.std(), 1e-4))
+    feet = []
+    for i, peak in enumerate(peaks):
+        period = peaks[i] - peaks[i - 1] if i else (peaks[1] - peak if len(peaks) > 1 else fs * .8)
+        start = max(0, int(peak - .45 * period))
+        feet.append(start + int(np.argmin(values[start:peak])) if peak > start else int(peak))
+    return peaks, np.asarray(feet, dtype=int)
+
+
+def _quality_beats(wave, peaks, feet):
+    beats, ids = [], []
+    for i in range(len(peaks) - 1):
+        start, end = feet[i], feet[i + 1]
+        if not 0 <= start < peaks[i] < end <= len(wave) or end - start < 8:
             continue
-
-        segment = clean_wave[start:end]
-        systolic_amp = segment[0]
-
-        lo = max(int(0.10 * period_samples), 1)
-        hi = min(int(0.55 * period_samples), period_samples - 1)
-        if hi <= lo + 1:
+        beat = wave[start:end]
+        span = float(np.ptp(beat))
+        if span < 1e-8:
             continue
-        window = segment[lo:hi]
+        normalized = (beat - beat.min()) / span
+        beats.append(np.interp(np.linspace(0, 1, 100), np.linspace(0, 1, len(beat)), normalized))
+        ids.append(i)
+    if not beats:
+        return set(), 0.0, []
+    beats = np.asarray(beats)
+    template = np.median(beats, axis=0)
+    centered = beats - beats.mean(axis=1, keepdims=True)
+    template = template - template.mean()
+    denominator = np.linalg.norm(centered, axis=1) * np.linalg.norm(template)
+    correlations = np.divide(centered @ template, denominator, out=np.zeros(len(beats)), where=denominator > 1e-12)
+    return {i for i, r in zip(ids, correlations) if r >= .8}, float(np.median(correlations)), correlations.tolist()
 
-        local_peaks, props = sp_signal.find_peaks(window, prominence=0.0)
-        if len(local_peaks) == 0:
+
+def extract_hemodynamic_indices(clean_wave, vpg, apg, peaks, feet, fs=TARGET_FS, height_m=1.75):
+    """Estimate height/delay SI and foot-referenced RI from repeatable beats.
+
+    Shoulder candidates are reported separately. Neither a waveform shoulder nor
+    a high template correlation establishes arterial stiffness or disease.
+    """
+    wave, vpg, apg = (_values(v, 3) for v in (clean_wave, vpg, apg))
+    fs = _rate(fs)
+    if not .5 <= height_m <= 2.5 or not np.isfinite(height_m):
+        raise ValueError('Height must be between 0.5 and 2.5 meters.')
+    peaks, feet = np.asarray(peaks, dtype=int), np.asarray(feet, dtype=int)
+    if len(wave) != len(vpg) or len(wave) != len(apg) or len(peaks) != len(feet):
+        raise ValueError('Waveform, derivative and landmark arrays must align.')
+    if len(peaks) and (np.any(np.diff(peaks) <= 0) or np.any(peaks < 0) or np.any(peaks >= len(wave)) or np.any(feet < 0) or np.any(feet > peaks)):
+        raise ValueError('Landmark indices are out of order or out of range.')
+    valid, sqi, correlations = _quality_beats(wave, peaks, feet)
+    records = []
+    for i in sorted(valid):
+        peak, next_peak = int(peaks[i]), int(peaks[i + 1])
+        period = next_peak - peak
+        amp_sys = float(wave[peak] - wave[feet[i]])
+        if amp_sys <= 1e-8:
             continue
+        lo = min(len(wave), peak + max(1, int(.10 * period)))
+        hi = min(len(wave), int(feet[i + 1]), peak + int(.55 * period))
+        if hi - lo < 3:
+            continue
+        local, props = sp_signal.find_peaks(wave[lo:hi], prominence=.01 * amp_sys)
+        method = 'peak'
+        if len(local):
+            reflection = lo + int(local[np.argmax(props['prominences'])])
+        else:
+            # A negative VPG maximum marks flattening on a descending shoulder.
+            local, props = sp_signal.find_peaks(vpg[lo:hi], prominence=max(1e-8, .01 * np.ptp(vpg[lo:hi])))
+            local = local[(vpg[lo + local] < 0) & (wave[lo + local] > wave[feet[i]])]
+            if not len(local):
+                continue
+            reflection = lo + int(local[np.argmax(vpg[lo + local])])
+            method = 'shoulder'
+        delay = (reflection - peak) / fs
+        if delay < .05:
+            continue
+        ri = float((wave[reflection] - wave[feet[i]]) / amp_sys * 100)
+        si = float(height_m / delay)
+        if not np.isfinite(si + ri) or not 0 < ri < 100:
+            continue
+        stop = min(len(apg), peak + max(1, int(.1 * period)))
+        a_start = int(feet[i])
+        a_idx = a_start + int(np.argmax(apg[a_start:stop]))
+        b_stop = min(hi, a_idx + max(2, int(.25 * period)))
+        ba = None
+        if b_stop > a_idx + 1 and apg[a_idx] > 1e-5:
+            b_idx = a_idx + 1 + int(np.argmin(apg[a_idx + 1:b_stop]))
+            if apg[b_idx] < 0:
+                ba = float(apg[b_idx] / apg[a_idx])
+        records.append(dict(beat=i, reflection=reflection, method=method, si=si, ri=ri, delay=delay, ba_ratio=ba,
+                            outside_reference_bounds=not (4 <= si <= 18 and 20 <= ri <= 98)))
+    enough = len(valid) >= 4 and len(records) >= 4
+    def median(key):
+        values = [r[key] for r in records if r[key] is not None]
+        return float(np.median(values)) if enough and values else None
+    return dict(si=median('si'), ri=median('ri'), ba_ratio=median('ba_ratio'), sqi_score=sqi,
+                accepted_beats=len(valid), reflection_beats=len(records), beat_correlations=correlations,
+                reflection_records=records, status='OK' if enough else 'LOW_QUALITY')
 
-        # Take the peak with the highest prominence within this bounded
-        # window. Bounding the window to 10%-55% of the beat (rather than
-        # searching all the way to 85%) is what makes "biggest prominence"
-        # safe to use -- a real reflection bump physiologically shows up
-        # in roughly this range, while filter ringing tends to show up
-        # later in the cycle. Search too wide, and "biggest prominence"
-        # will happily grab a ringing artifact instead of the real bump.
-        best = local_peaks[int(np.argmax(props["prominences"]))]
-        reflection_idx = lo + best
-        reflection_amp = segment[reflection_idx]
 
-        delay_fraction = reflection_idx / period_samples
-        if delay_fraction > 0:
-            si_values.append(1.0 / delay_fraction)
-        if systolic_amp != 0:
-            ri_values.append(abs(reflection_amp / systolic_amp))
+def assess_beat_intervals(peaks, fs=TARGET_FS):
+    """Check interval consistency within this prototype's supported range.
 
-    if not si_values:
-        return None, None
-    return float(np.median(si_values)), (float(np.median(ri_values)) if ri_values else None)
+    Uneven intervals can have physiological or recording causes. This heuristic
+    does not distinguish them and is not an arrhythmia detector.
+    """
+    peaks = np.asarray(peaks)
+    fs = _rate(fs)
+    if peaks.ndim != 1 or not np.isfinite(peaks).all() or np.any(np.diff(peaks) <= 0):
+        raise ValueError('Peak indices must be finite and strictly increasing.')
+    if len(peaks) < 3:
+        return dict(bpm=None, interval_cv=None, timing_quality=False,
+                    timing_warnings=['Too few pulse intervals to check timing consistency.'])
+    intervals = np.diff(peaks) / fs
+    mean = float(np.mean(intervals))
+    cv = float(np.std(intervals) / mean)
+    bpm = float(60 / np.median(intervals))
+    in_range = 40 <= 60 / mean <= 160 and 40 <= bpm <= 160
+    consistent = in_range and cv <= .20
+    warnings = [] if consistent else [
+        'Pulse intervals are too uneven or outside the prototype’s 40–160 BPM processing range. '
+        'SI and RI are withheld. Re-record with your hand supported and light contact; '
+        'this check cannot identify the cause of uneven intervals.']
+    return dict(bpm=bpm if consistent else None, interval_cv=cv,
+                timing_quality=consistent, timing_warnings=warnings)
+
+
+def process_trimmed_signal(values, fps, height_m=1.75, source_times=None):
+    """Process an already trimmed optical buffer; leave missing metrics unset."""
+    start = perf_counter()
+    time_axis, raw = resample_signal(values, fps, source_times=source_times)
+    clean = bandpass_filter(raw)
+    detrended = detrend_signal(clean)
+    # Segment on the bandpassed contour; moving-mean subtraction can invent peaks.
+    peaks, feet = detect_cardiac_cycles(clean)
+    vpg, apg = compute_smoothed_derivatives(clean)
+    indices = extract_hemodynamic_indices(clean, vpg, apg, peaks, feet, height_m=height_m)
+    timing = assess_beat_intervals(peaks)
+    if not timing['timing_quality']:
+        indices.update(si=None, ri=None, ba_ratio=None, status='LOW_QUALITY')
+    return dict(clean_signal=clean, detrended_signal=detrended, raw_signal=raw - raw.mean(), time_axis=time_axis,
+                peaks=peaks, feet=feet, vpg=vpg, apg=apg, **timing,
+                latency_ms=(perf_counter() - start) * 1000, **indices)
+
+
+def compute_full_telemetry(raw_signal, original_fps, height_m=1.75):
+    """Run the array API. The video API separately enforces short-clip consent."""
+    start = perf_counter()
+    values, fps, metadata = clamp_and_validate_buffer(raw_signal, original_fps)
+    telemetry = process_trimmed_signal(values, fps, height_m)
+    telemetry.update(metadata, latency_ms=(perf_counter() - start) * 1000)
+    return telemetry
+
+
+# Compatibility names used by scripts and earlier callers.
+def detect_beats(clean_wave, fs=TARGET_FS, max_bpm=160):
+    return detect_cardiac_cycles(clean_wave, fs, max_bpm)[0]
+
+
+def compute_indices(clean_wave, beat_peaks, fs=TARGET_FS, **kwargs):
+    wave = _values(clean_wave, 3)
+    peaks = np.asarray(beat_peaks, dtype=int)
+    if peaks.ndim != 1 or (len(peaks) and (np.any(peaks < 0) or np.any(peaks >= len(wave)) or np.any(np.diff(peaks) <= 0))):
+        raise ValueError('Peak indices must be increasing and within the waveform.')
+    detected, feet = detect_cardiac_cycles(wave, fs)
+    if not np.array_equal(peaks, detected):
+        feet = np.array([max(0, int(p - .45 * (peaks[i] - peaks[i - 1] if i else fs * .8))) for i, p in enumerate(peaks)])
+        feet = np.array([f + np.argmin(wave[f:p]) if p > f else p for f, p in zip(feet, peaks)])
+    vpg, apg = compute_smoothed_derivatives(wave, fs)
+    result = extract_hemodynamic_indices(wave, vpg, apg, peaks, feet, fs, kwargs.get('height_m', 1.75))
+    return result['si'], result['ri']
+
+
+def compute_apg_derivatives(clean_wave, fs=TARGET_FS):
+    return compute_smoothed_derivatives(clean_wave, fs)
+
+
+def second_derivative(clean_wave, dt):
+    return compute_smoothed_derivatives(clean_wave, 1 / _rate(dt))[1]
 
 
 def make_test_beat_wave(fs, duration_sec, bpm, reflection_delay_frac, reflection_amp):
-    """
-    Builds a wave with a GENUINE two-bump shape per beat (a systolic
-    Gaussian bump + a separate reflection Gaussian bump), unlike naively
-    summing two same-frequency sine waves (see the note above).
-    """
-    n_samples = int(duration_sec * fs)
-    wave = np.zeros(n_samples)
-    t_cursor = 0.0
-    while t_cursor < duration_sec:
-        period = 60.0 / bpm
-        start_idx = int(t_cursor * fs)
-        end_idx = min(int((t_cursor + period) * fs), n_samples)
-        if start_idx >= n_samples:
-            break
-        local_t = np.arange(end_idx - start_idx) / fs
-
-        tau1 = period * 0.08   # systolic bump width -- wide enough to avoid filter ringing
-        tau2 = period * 0.10   # reflection bump width
-        delay = reflection_delay_frac * period
-
-        systolic = np.exp(-(local_t / tau1) ** 2)
-        reflection = reflection_amp * np.exp(-((local_t - delay) / tau2) ** 2)
-        wave[start_idx:end_idx] += (systolic + reflection)[: end_idx - start_idx]
-        t_cursor += period
-    return wave
+    """Generate two smooth pulses per cycle for software checks, not patient data."""
+    t = np.arange(int(duration_sec * fs)) / fs
+    phase = (t % (60 / bpm))
+    return (np.exp(-.5 * ((phase - .16) / .045) ** 2) +
+            reflection_amp * np.exp(-.5 * ((phase - .16 - reflection_delay_frac * 60 / bpm) / .04) ** 2))
 
 
-if __name__ == "__main__":
-    # ---- Test 1: the filter ----
-    fs = 100.0
-    duration = 5.0
-    t = np.arange(0, duration, 1 / fs)
+def self_test():
+    profiles = []
+    for name, delay, amplitude in [('later pulse', .22, .65), ('earlier pulse', .11, .35)]:
+        raw = 170 + 45 * make_test_beat_wave(60, 20, 72, delay / (60 / 72), amplitude)
+        result = compute_full_telemetry(raw, 60)
+        profiles.append(result)
+        print(f"{name:14s} SI={result['si']} m/s  RI={result['ri']}%  SQI={result['sqi_score']:.3f}  {result['latency_ms']:.2f} ms")
+    assert all(r['status'] == 'OK' for r in profiles)
+    assert profiles[1]['si'] > profiles[0]['si']
+    assert profiles[1]['ri'] < profiles[0]['ri']
+    _, _, meta = clamp_and_validate_buffer(np.tile([170., 180.], 1200), 60)
+    assert meta['processed_duration'] == 25.0 and meta['was_clamped']
+    timings = []
+    for _ in range(10):
+        timings.append(compute_full_telemetry(raw, 60)['latency_ms'])
+    median_ms = float(np.median(timings))
+    assert median_ms < 25.0, f'Local median array processing took {median_ms:.2f} ms'
+    print(f'Array checks passed; warmed median {median_ms:.2f} ms. Timings are local measurements, not device guarantees.')
 
-    true_heart_hz = 1.2
-    heartbeat = np.sin(2 * np.pi * true_heart_hz * t)
-    breathing_drift = 0.5 * np.sin(2 * np.pi * 0.25 * t)
-    fast_noise = 0.3 * np.sin(2 * np.pi * 20 * t)
 
-    noisy = heartbeat + breathing_drift + fast_noise
-    clean = bandpass_filter(noisy, fs=fs)
-
-    zero_crossings = np.sum(np.diff(np.sign(clean)) != 0)
-    estimated_hz = zero_crossings / 2 / duration
-    print(f"[Filter test] true={true_heart_hz}Hz  estimated={estimated_hz:.2f}Hz")
-
-    # ---- Test 2: peak detection ----
-    peaks = detect_beats(clean, fs=fs)
-    print(f"\n[Peak detection test] Expected ~6 beats in {duration}s at {true_heart_hz*60:.0f} BPM")
-    print(f"Detected {len(peaks)} beats at sample indices: {peaks}")
-
-    if len(peaks) >= 2:
-        intervals_sec = np.diff(peaks) / fs
-        estimated_bpm = 60.0 / np.mean(intervals_sec)
-        print(f"Estimated BPM from peak spacing: {estimated_bpm:.1f} "
-              f"(true: {true_heart_hz*60:.0f})")
-
-    # ---- Test 3: Stiffness Index on a HEALTHY vs STIFF fake wave ----
-    print("\n[Stiffness Index test] SI should be HIGHER for the 'stiff' profile")
-    for label, delay_frac, refl_amp in [("healthy", 0.45, 0.40), ("stiff", 0.22, 0.15)]:
-        wave = make_test_beat_wave(fs=100.0, duration_sec=10.0, bpm=75,
-                                    reflection_delay_frac=delay_frac, reflection_amp=refl_amp)
-        clean_wave = bandpass_filter(wave, fs=100.0)
-        beats = detect_beats(clean_wave, fs=100.0)
-        si, ri = compute_indices(clean_wave, beats, fs=100.0)
-        print(f"  {label:8s}: SI={si}  RI={ri}  (beats detected: {len(beats)})")
+if __name__ == '__main__':
+    self_test()

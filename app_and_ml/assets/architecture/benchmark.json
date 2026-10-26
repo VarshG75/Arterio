@@ -1,0 +1,11 @@
+{
+  "samples": 1000,
+  "sample_rate_hz": 200,
+  "runs": 200,
+  "median_ms": 0.97,
+  "p95_ms": 1.087,
+  "platform": "Darwin",
+  "machine": "arm64",
+  "python": "3.14.3",
+  "scope": "PCHIP + SOS filter design/execution + detrending + segmentation + template quality + reflection ratios + smoothed derivatives; 1,000 generated samples at 200 Hz. Excludes video decoding and UI."
+}
