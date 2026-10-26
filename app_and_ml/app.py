@@ -494,17 +494,16 @@ if nav_selection == "Telemetry":
         st.markdown('<div class="section-pill" style="margin-top: 2.2rem;">05 / COMPLIANCE ASSESSMENT</div>', unsafe_allow_html=True)
         if si_val < 3.0:
             border_accent = "#00f2fe"
-            status_heading = "Optimal Arterial Elasticity"
-            status_body = "Wave reflections demonstrate compliant arterial wall mechanics. The secondary dicrotic peak timing indicates healthy elastic recoil with standard peripheral pulse damping."
+            status_heading = "Lower Stiffness Range"
+            status_body = "In this recording, the reflected wave arrived later in the beat, the pattern typically seen with more elastic arteries. This is an educational estimate, not a medical result."
         elif 3.0 <= si_val <= 4.0:
             border_accent = "#4facfe"
-            status_heading = "Borderline Arterial Distensibility"
-            status_body = "Moderate reduction in vascular compliance observed. Accelerated reflection velocity suggests early-stage systemic peripheral vascular resistance."
+            status_heading = "Mid Stiffness Range"
+            status_body = "In this recording, the reflected wave arrived at an intermediate point in the beat. Results vary with finger placement and pressure, so repeat the measurement before reading anything into it. Educational estimate, not a medical result."
         else:
             border_accent = "#38bdf8"
-            status_heading = "Elevated Vascular Resistance"
-            status_body = "High-velocity wave reflections detected with attenuated dicrotic notch separation. Consistent with elevated arterial stiffening; clinical verification recommended."
-
+            status_heading = "Higher Stiffness Range"
+            status_body = "In this recording, the reflected wave arrived earlier in the beat, the pattern typically seen with stiffer arteries. A phone video cannot diagnose anything. If you are concerned about your heart health, talk to a doctor."
         st.markdown(f"""
         <div class="bento-card" style="border-left: 3px solid {border_accent};">
             <div style="font-family: 'Newsreader', serif; font-size: 1.65rem; font-weight: 400; color: #ffffff; margin-bottom: 6px;">{status_heading}</div>

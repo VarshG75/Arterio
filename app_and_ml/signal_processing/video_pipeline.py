@@ -35,7 +35,7 @@ def extract_red_signal(filepath: str):
             break
         t_ms = cap.get(cv2.CAP_PROP_POS_MSEC)
         # OpenCV frames are B, G, R order -> red is channel index 2
-        reds.append(float(frame[:, :, 2].mean()))
+        reds.append(float(frame[::4, ::4, 2].mean()))
         times.append(t_ms / 1000.0 if t_ms and t_ms > 0 else frame_index / nominal_fps)
         frame_index += 1
     cap.release()
@@ -83,9 +83,8 @@ def analyze_live_video(filepath: str) -> dict:
 
     raw = resample_uniform(times, reds)
     clean = bandpass_filter(raw, fs=TARGET_FS)
-    if len(clean) > 4 * TARGET_FS:  # trim 1s of filter edge effects from both ends
-        trim = int(TARGET_FS)
-        raw, clean = raw[trim:-trim], clean[trim:-trim]
+    if len(clean) > 5 * TARGET_FS:  # drop first 2s (exposure settling) and last 1s (filter edge)
+        raw, clean = raw[int(2 * TARGET_FS):-int(TARGET_FS)], clean[int(2 * TARGET_FS):-int(TARGET_FS)]
     raw = raw - raw.mean()  # center for plotting
     beats = detect_beats(clean, fs=TARGET_FS)
 
@@ -94,7 +93,15 @@ def analyze_live_video(filepath: str) -> dict:
         empty["message"] = "Couldn't find enough heartbeats — hold still and retry."
         return empty
 
-    bpm = float(60.0 / np.mean(np.diff(beats) / TARGET_FS))
+    intervals = np.diff(beats) / TARGET_FS
+    bpm = float(60.0 / np.mean(intervals))
+    spread = float(np.std(intervals) / np.mean(intervals))
+    if not (40 <= bpm <= 180) or spread > 0.20:
+        empty["quality"] = "poor"
+        empty["message"] = ("The pulse signal was too irregular to measure reliably. "
+                            "Cover the camera and flash fully, rest your hand on a table, "
+                            "press lightly, and stay still for 20 seconds.")
+        return empty
     si, ri = compute_indices(clean, beats, fs=TARGET_FS)
     return {"heart_rate_bpm": round(bpm, 1),
             "stiffness_index": None if si is None else round(si, 3),
