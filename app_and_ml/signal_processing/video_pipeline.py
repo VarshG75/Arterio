@@ -25,9 +25,8 @@ def video_metadata(filepath):
 
 
 def mean_red_channel(frame):
-    """Sample a regular pixel grid; retain every pixel in small frames."""
-    stride = 4 if min(frame.shape[:2]) >= 64 else 1
-    return float(frame[::stride, ::stride, 2].mean())
+    """Use OpenCV’s full-frame reduction without regular-grid sampling bias."""
+    return float(cv2.sumElems(frame)[2] / (frame.shape[0] * frame.shape[1]))
 
 
 def extract_red_signal(filepath, metadata=None):
@@ -48,7 +47,10 @@ def extract_red_signal(filepath, metadata=None):
         times, reds = np.asarray(times), np.asarray(reds)
         if len(reds) < 2:
             raise ValueError('No usable video frames. Try an original H.264 MP4.')
-        if not np.isfinite(times).all() or np.any(np.diff(times) <= 0):
+        gaps = np.diff(times)
+        if (not np.isfinite(times).all() or np.any(gaps <= 0)
+                or np.any(gaps > max(.5, 5 / fps))
+                or times[-1] - times[0] > MAX_DURATION + 1):
             times = np.arange(len(reds)) / fps
         return times - times[0], reds
     finally:
@@ -108,8 +110,9 @@ def analyze_live_video(filepath, *, allow_short=False, height_m=1.75):
                       latency_ms=processed['latency_ms'], height_m=height_m, status=processed['status'], warnings=warnings,
                       interval_cv=processed['interval_cv'], timing_quality=processed['timing_quality'],
                       quality='good' if processed['status'] == 'OK' else 'partial',
-                      message='Waveform processing complete.' if processed['status'] == 'OK' else
-                      'A repeatable secondary landmark could not be measured in at least four beats. Missing metrics are left blank.')
+                      message=('Waveform processing complete.' if processed['status'] == 'OK' else
+                               'Timing quality did not pass. Pulse and reflection metrics are withheld.' if not processed['timing_quality'] else
+                               'A repeatable secondary landmark could not be measured in at least four beats. Missing metrics are left blank.'))
     except (ValueError, cv2.error, OSError) as error:
         result['message'] = str(error)
     return result

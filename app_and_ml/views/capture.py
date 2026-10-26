@@ -7,6 +7,21 @@ from views.acquisition import render_protocol
 
 
 
+def invalidate_measurement():
+    """Inputs changed; keep the upload but remove its previous analysis."""
+    st.session_state['telemetry_computed'] = False
+    st.session_state['telemetry_data'] = {}
+    st.session_state.pop('analysis_result', None)
+
+
+def upload_changed(key):
+    """Handle explicit removal without clearing results merely on page navigation."""
+    if st.session_state.get(key) is None:
+        invalidate_measurement()
+        for name in ('upload_id', 'capture_metadata', 'capture_error', 'short_override'):
+            st.session_state.pop(name, None)
+
+
 def reset_capture():
     st.session_state['capture_version'] = st.session_state.get('capture_version', 0) + 1
     for key in ['upload_id', 'capture_metadata', 'capture_error', 'short_override', 'analysis_result']:
@@ -26,6 +41,7 @@ def render_capture():
     version = st.session_state.get('capture_version', 0)
     uploaded = st.file_uploader('Upload your original fingertip video', type=['mp4', 'mov', 'avi'],
                                 key=f'capture_video_{version}',
+                                on_change=upload_changed, args=(f'capture_video_{version}',),
                                 help='Original rear-camera video, preferably 1080p / 60 FPS, 20–25 seconds, with gentle contact.')
     analyze = False
     if uploaded is not None:
@@ -45,7 +61,7 @@ def render_capture():
             st.error(error)
         confirmed = st.checkbox('This is the original fingertip camera video, not a screen recording.', key=f'capture_confirm_{version}_{upload_id}')
         st.number_input('Height (cm), used for the experimental height / delay index', min_value=50.0, max_value=250.0,
-                                 value=175.0, step=1.0, key='capture_height_cm', help='Enter your measured height. SI scales directly with this value; it does not measure pulse transit velocity.')
+                                 value=175.0, step=1.0, key='capture_height_cm', on_change=invalidate_measurement, help='Enter your measured height. SI scales directly with this value; it does not measure pulse transit velocity.')
         gate = duration_gate(metadata['duration']) if metadata else 'reject'
         if metadata:
             st.caption(f"Detected: {metadata['width']} × {metadata['height']} pixels · {metadata['fps']:.2f} FPS · {metadata['duration']:.1f}s. Settings and original-capture status cannot be verified from metadata alone.")

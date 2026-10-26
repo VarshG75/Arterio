@@ -2,6 +2,8 @@
 
 A local Streamlit research prototype for the Congressional App Challenge, formerly PulseForm. Explore optical pulse waveforms and the anatomy behind the signal.
 
+Built together by Varsh G. and Shreyas. Varsh has led substantial UI work; Shreyas has made substantial contributions to the mathematical and signal-processing work. Both contribute to the shared project.
+
 ## Run on macOS
 
 From this folder in VS Code:
@@ -10,7 +12,7 @@ From this folder in VS Code:
 .venv/bin/python -m streamlit run app_and_ml/app.py --server.address 127.0.0.1 --server.port 8501 --browser.gatherUsageStats false
 ```
 
-Open http://127.0.0.1:8501. Stop with Control-C. The current virtual environment already contains the dependencies. For a new environment, install `requirements.txt` before running.
+Open http://127.0.0.1:8501. Stop with Control-C. The current virtual environment already contains the dependencies. Requirements select the existing desktop OpenCV package on macOS and the headless package on other platforms; only one OpenCV distribution should be installed. For a new environment, install `requirements.txt` before running.
 
 The black-and-cyan ARTERIO opening plays once per browser-tab session. Click the ARTERIO name in the header to replay. The opening finishes automatically after 2.8 seconds; Escape dismisses it from the keyboard. Reduced-motion preferences bypass it. The solid atlas uses white tissue, grey coronary vessels and cyan selection.
 

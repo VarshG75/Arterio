@@ -26,4 +26,20 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(app.get('file_uploader')[0].key,'capture_video_1')
         self.assertIn('Ready for a new take',app.info[0].value)
 
+class CaptureInvalidationTests(unittest.TestCase):
+    def test_explicit_upload_removal_clears_previous_result(self):
+        code=f"import sys\nsys.path.insert(0, {str(ROOT / 'app_and_ml')!r})\nfrom views.capture import upload_changed\nupload_changed('capture_video_0')"
+        app=AppTest.from_string(code)
+        app.session_state['capture_video_0']=None
+        app.session_state['telemetry_computed']=True
+        app.session_state['telemetry_data']={'old':True}
+        app.session_state['analysis_result']={'quality':'good'}
+        app.session_state['upload_id']='old'
+        app.run()
+        self.assertFalse(app.exception, app.exception)
+        self.assertFalse(app.session_state['telemetry_computed'])
+        self.assertEqual(app.session_state['telemetry_data'],{})
+        self.assertNotIn('analysis_result',app.session_state)
+        self.assertNotIn('upload_id',app.session_state)
+
 if __name__=='__main__': unittest.main()

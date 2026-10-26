@@ -1,12 +1,13 @@
 """Regressions for the shared sampling and interval-quality changes."""
 import sys
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'app_and_ml'))
-from signal_processing.math_engine import assess_beat_intervals, process_trimmed_signal
-from signal_processing.video_pipeline import mean_red_channel
+from signal_processing.math_engine import assess_beat_intervals, process_trimmed_signal, compute_indices, resample_signal
+from signal_processing.video_pipeline import mean_red_channel, extract_red_signal
 
 
 class TeamIntegrationTests(unittest.TestCase):
@@ -30,8 +31,36 @@ class TeamIntegrationTests(unittest.TestCase):
         self.assertFalse(result['timing_quality'])
         self.assertIsNone(result['si'])
         self.assertIsNone(result['ri'])
+        self.assertEqual(compute_indices(result['clean_signal'], result['peaks']), (None, None))
 
-    def test_spatial_sampling_preserves_uniform_pulse_and_small_frames(self):
+    def test_structured_pixels_do_not_bias_the_frame_mean(self):
+        frame = np.full((240, 320, 3), 180, np.uint8)
+        frame[::4, ::4, 2] = 255
+        self.assertAlmostEqual(mean_red_channel(frame), 184.6875)
+
+    def test_bad_decoder_timestamps_fall_back_to_the_frame_clock(self):
+        class Decoder:
+            index = 0
+            released = False
+            def isOpened(self): return True
+            def read(self):
+                self.index += 1
+                return (True, np.full((8, 8, 3), 180, np.uint8)) if self.index <= 3 else (False, None)
+            def get(self, key): return [0, 1000 / 30, 10_000_000][self.index - 1]
+            def release(self): self.released = True
+        decoder = Decoder()
+        with patch('signal_processing.video_pipeline.cv2.VideoCapture', return_value=decoder):
+            times, values = extract_red_signal('unused.avi', {'fps': 30})
+        np.testing.assert_allclose(times, np.arange(3) / 30)
+        self.assertTrue(decoder.released)
+        self.assertEqual(len(values), 3)
+
+    def test_resampling_rejects_unbounded_time_grids(self):
+        for kwargs in [dict(target_fs=1e20), dict(source_times=[0, .03, 10000])]:
+            with self.assertRaisesRegex(ValueError, 'grid is too large'):
+                resample_signal([170, 180, 170], 30, **kwargs)
+
+    def test_full_frame_mean_preserves_uniform_pulse_and_small_frames(self):
         frame = np.zeros((240, 320, 3), np.uint8)
         for red in [100, 160, 200, 250]:
             frame[:, :, 2] = red

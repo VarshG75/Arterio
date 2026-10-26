@@ -62,6 +62,11 @@ with patch('streamlit.file_uploader', return_value=Upload(Path({str(path)!r}).re
             self.assertFalse(app.session_state['short_override'])
             self.assertFalse(app.session_state['telemetry_data']['is_short_duration'])
             self.assertTrue(any('20S+ RECORDING ACQUIRED' in item.value for item in app.markdown))
+            app.number_input[0].set_value(180.0).run()
+            self.assertFalse(app.exception, app.exception)
+            self.assertFalse(app.session_state['telemetry_computed'])
+            self.assertEqual(app.session_state['telemetry_data'], {})
+            self.assertNotIn('analysis_result', app.session_state)
 
 
 if __name__ == '__main__': unittest.main()

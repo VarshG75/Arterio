@@ -1,6 +1,6 @@
 # Team integration — October 26, 2026
 
-Compared local work on `main` with Shreyas’s fetched commits through `33906dd`. A backup of all modified/untracked work and the original HEAD is saved outside the repository at `/tmp/arterio-before-integration-20261026-103509`.
+Compared local work on `main` with Shreyas’s fetched commits through `33906dd`. This comparison covers the recent commits, not the full extent of Shreyas’s substantial math and signal-processing contributions; the project is co-developed with Varsh. A backup of all modified/untracked work and the original HEAD is saved outside the repository at `/tmp/arterio-before-integration-20261026-103509`.
 
 | Upstream change | Integration decision |
 | --- | --- |
@@ -15,3 +15,14 @@ Compared local work on `main` with Shreyas’s fetched commits through `33906dd`
 The source GLB, reference images, geometry mappings, licenses, large CSV and legacy saved model are retained. The unrelated personal `.vscode/extensions.json` recommendation is excluded from the integration commits.
 
 Validation: 20 regression tests, array self-check, all five Streamlit routes, JavaScript syntax and whitespace checks. Generated signals/videos verify software behavior, not clinical accuracy. Spatial-sampling tests cover uniform signals, small-frame fallback and bounded error on generated pixel noise; they do not establish equivalence for every real recording.
+
+## Follow-up regression audit
+
+- Regular stride-4 sampling could falsely report an overexposed frame: a generated striped image averaged 184.6875 over all red pixels but 255 over the sampled grid. Replaced it with OpenCV full-frame summation divided by the pixel count. This retains the exact spatial mean while reducing Python/NumPy reduction overhead.
+- On a local generated 1080p frame, the NumPy full reduction took about 0.70 ms and the OpenCV reduction about 0.24 ms per frame. This narrow measurement excludes decoding and is not a general video speed guarantee.
+- Height changes and explicit upload removal now invalidate previous results. Navigating between pages does not invoke the removal callback.
+- The compatibility `compute_indices` API now enforces the same interval-quality check as the full pipeline. Timing failure has its own message.
+- Broken/nonmonotonic timestamps or implausible gaps fall back to the nominal frame clock. Excessively large interpolation grids are rejected before allocation.
+- Dependencies now select the already-verified desktop OpenCV distribution on macOS and the headless distribution elsewhere. The installed packages satisfy all active macOS requirements.
+
+Remaining limitation: the simple peak detector can mistake a pronounced secondary bump for another primary peak, especially in slow generated pulse profiles. The timing guard rejects these ambiguous traces instead of displaying misleading metrics. Real-phone recordings and reference comparisons are still needed to evaluate acceptance and accuracy.

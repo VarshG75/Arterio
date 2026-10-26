@@ -2,7 +2,7 @@
 
 ## Automated checks
 
-- 20 regression tests pass using generated signals and videos. Checks include duration boundaries, explicit short-clip consent, result badges, saturation/flat-signal rejection, 25-second clamping, 2/1-second trimming, PCHIP shape preservation, SOS stopband behavior, derivative accuracy, bounded feet, peak/shoulder detection, missing values, motion warnings and retake reset.
+- 24 regression tests pass using generated signals and videos. Checks include duration boundaries, explicit short-clip consent, result badges, saturation/flat-signal rejection, 25-second clamping, 2/1-second trimming, PCHIP shape preservation, SOS stopband behavior, derivative accuracy, bounded feet, peak/shoulder detection, missing values, motion warnings and retake reset.
 - All five Streamlit routes render without exceptions with AppTest. The Telemetry workflow tests run through upload inspection, confirmation, analysis and result rendering for 15- and 20-second fixtures.
 - Heart asset checks verify the unchanged base GLB hash, 17 source-mapped extras, finite positions/normals, valid indices and preservation of the opening geometry, allowing comment-only edits.
 - Embedded heart, opening and architecture JavaScript passes `node --check`. Python source parses and `git diff --check` passes.
@@ -25,4 +25,6 @@
 - The large CSV and model binary were not scanned or retrained. The legacy saved model is not loaded. Runtime source comments and current documents were reviewed; historical snapshots and third-party credits remain preserved.
 - No commits, pushes, deployments or cloud tasks. The preview runs locally at `127.0.0.1:8501`.
 
-Team integration checks add spatial-sampling regression coverage, interval consistency and supported-range checks, and confirmation that irregular generated traces do not report SI/RI. See `INTEGRATION.md` for upstream commit decisions.
+Team integration and audit checks cover structured-pixel averaging, uniform inputs and small frames, bounded interpolation, malformed decoder timestamps, interval consistency, the compatibility API, upload removal and height-change invalidation. Irregular generated traces do not report SI/RI. See `INTEGRATION.md` for upstream commit decisions.
+
+The follow-up audit found and corrected sparse-grid bias and result-invalidation issues. Active macOS requirement versions match the installed environment, and `pip check` reports no broken dependencies. UI assets and source geometry were not changed by the audit; Telemetry was inspected in Chrome and all page routes are checked with AppTest. See `INTEGRATION.md` for scope and remaining peak-detection limits.

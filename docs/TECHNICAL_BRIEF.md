@@ -8,7 +8,7 @@ The app recommends an original 20–25 second recording at 1080p or 720p, prefer
 
 OpenCV reads duration metadata before analysis. Under 12 seconds is rejected; 12 to under 20 seconds requires an explicit reduced-window action. A temporary file supplies the decoder and is removed after inspection or analysis, including failures. Decoding stops after 25 seconds. The first 2 seconds and final 1 second of that processed segment are removed. A 20-second recording therefore retains approximately 17 seconds before beat rejection.
 
-For normal-size frames, every fourth pixel in each axis supplies an approximate spatial red mean; small frames use all pixels. Mean red intensity outside 30–250 and near-flat intensity are rejected. A half-second frame-difference variance above four times the median produces a warning. These are recording heuristics, not calibrated SNR, pressure or blanching measurements. Missing FPS uses a disclosed 30 FPS fallback. Available monotonic frame timestamps define the interpolation clock; otherwise nominal FPS is used.
+An optimized OpenCV reduction computes the full spatial red-channel mean, avoiding regular-grid sampling bias. Mean red intensity outside 30–250 and near-flat intensity are rejected. A half-second frame-difference variance above four times the median produces a warning. These are recording heuristics, not calibrated SNR, pressure or blanching measurements. Missing FPS uses a disclosed 30 FPS fallback. Available monotonic frame timestamps define the interpolation clock; otherwise nominal FPS is used.
 
 ## Numerical pipeline
 

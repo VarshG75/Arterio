@@ -24,9 +24,13 @@ def _values(values, minimum=2):
 
 
 def _rate(fs):
+    try:
+        fs = float(fs)
+    except (TypeError, ValueError):
+        raise ValueError('Sampling rate must be finite and positive.') from None
     if not np.isfinite(fs) or fs <= 0:
         raise ValueError('Sampling rate must be finite and positive.')
-    return float(fs)
+    return fs
 
 
 def clamp_and_validate_buffer(raw_frames, original_fps):
@@ -71,7 +75,12 @@ def resample_signal(raw_signal, original_fps, target_fs=TARGET_FS, *, source_tim
     if len(source) != len(values) or np.any(np.diff(source) <= 0):
         raise ValueError('Source timestamps must be finite, increasing and match the signal.')
     source = source - source[0]
+    count = source[-1] * target_fs
+    if not np.isfinite(count) or count > 200_000:
+        raise ValueError('Resampling grid is too large. Check frame timestamps and sampling rates.')
     target = np.arange(0, source[-1], 1 / target_fs)
+    if len(target) < 2:
+        raise ValueError('The signal is too short for the requested processing rate.')
     return target, PchipInterpolator(source, values, extrapolate=False)(target)
 
 
@@ -274,6 +283,8 @@ def compute_indices(clean_wave, beat_peaks, fs=TARGET_FS, **kwargs):
     peaks = np.asarray(beat_peaks, dtype=int)
     if peaks.ndim != 1 or (len(peaks) and (np.any(peaks < 0) or np.any(peaks >= len(wave)) or np.any(np.diff(peaks) <= 0))):
         raise ValueError('Peak indices must be increasing and within the waveform.')
+    if not assess_beat_intervals(peaks, fs)['timing_quality']:
+        return None, None
     detected, feet = detect_cardiac_cycles(wave, fs)
     if not np.array_equal(peaks, detected):
         feet = np.array([max(0, int(p - .45 * (peaks[i] - peaks[i - 1] if i else fs * .8))) for i, p in enumerate(peaks)])
