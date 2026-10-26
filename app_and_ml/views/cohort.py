@@ -8,9 +8,9 @@ import plotly.graph_objects as go
 def render_cohort_view():
     st.markdown("""
     <div class="page-transition">
-        <div class="section-pill">02 / LONGITUDINAL DATA</div>
+        <div class="section-pill">02 / SIMULATED ILLUSTRATION</div>
         <div class="hero-title">Cohort Trends.</div>
-        <div class="hero-caption">Population-scale arterial stiffness clustering across 2,577 clinical records (MIMIC-III / UCI calibration cohorts).</div>
+        <div class="hero-caption">Illustrative simulation of how arterial stiffness is expected to rise with age. Simulated data, not real patient records.</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -63,16 +63,16 @@ def render_cohort_view():
     with col_a:
         st.markdown("""
         <div class="bento-card">
-            <div class="bento-label">AGE-INDEX CORRELATION (R)</div>
-            <div class="bento-metric">0.78</div>
-            <div class="bento-subtext">Strong positive correlation observed between biological chronological age and reflection transit velocity.</div>
+            <div class="bento-label">ABOUT THIS CHART</div>
+            <div class="bento-metric">Simulated</div>
+            <div class="bento-subtext">Generated from an assumed age-stiffness trend plus random noise. It shows the pattern PulseForm would be tested for, not measured results.</div>
         </div>
         """, unsafe_allow_html=True)
     with col_b:
         st.markdown("""
         <div class="bento-card">
-            <div class="bento-label">DATASET SAMPLE SIZE</div>
-            <div class="bento-metric">2,577</div>
-            <div class="bento-subtext">Calibrated clinical photoplethysmogram records utilizing MIMIC-III intensive care waveforms.</div>
+            <div class="bento-label">POINTS PLOTTED</div>
+            <div class="bento-metric">800</div>
+            <div class="bento-subtext">Simulated points. Validation on real recorded finger videos is future work.</div>
         </div>
         """, unsafe_allow_html=True)
