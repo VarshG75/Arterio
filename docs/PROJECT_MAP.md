@@ -3,6 +3,7 @@
 | Location | Responsibility |
 | --- | --- |
 | `app_and_ml/app.py` | Dashboard setup and page routing |
+| `app_and_ml/views/navigation.py` | Page names and URL synchronization for refreshes |
 | `app_and_ml/styles.py` | Shared colors, navigation, uploads and warning styles |
 | `app_and_ml/views/capture.py` | Upload state, duration consent, height input and retake |
 | `app_and_ml/views/acquisition.py` | Shared recording protocol content |
@@ -17,7 +18,7 @@
 | `app_and_ml/assets/architecture/` | Flowchart styles, motion and benchmark record |
 | `app_and_ml/views/cohort.py` | Clearly labeled simulated data study |
 | `app_and_ml/views/clinical_docs.py` | Research explanations and source links |
-| `app_and_ml/views/opening.py`, `assets/brand/` | Brand opening |
+| `app_and_ml/views/opening.py`, `assets/brand/` | Page entrances and independent scroll memory |
 | `app_and_ml/train.py` | Offline training from independently labeled features |
 | `scripts/` | Asset preparation, signal benchmark and bounded CSV preview |
 | `tests/` | Generated-video, numeric, state and asset regressions |

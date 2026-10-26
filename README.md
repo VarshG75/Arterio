@@ -1,6 +1,6 @@
 # ARTERIO — Vascular Screening
 
-A local vascular-screening research application for the Congressional App Challenge, formerly PulseForm. Explore optical pulse waveforms and the anatomy behind the signal.
+A local vascular-screening research application for the Congressional App Challenge. Explore optical pulse waveforms and the anatomy behind the signal.
 
 Built together by Varsh G. and Shreyas. Varsh has led substantial UI work; Shreyas has made substantial contributions to the mathematical and signal-processing work. Both contribute to the shared project.
 
@@ -14,7 +14,7 @@ From this folder in VS Code:
 
 Open http://127.0.0.1:8501. Stop with Control-C. The current virtual environment already contains the dependencies. Requirements select the existing desktop OpenCV package on macOS and the headless package on other platforms; only one OpenCV distribution should be installed. For a new environment, install `requirements.txt` before running.
 
-The black-and-cyan ARTERIO opening plays once per browser-tab session. Click the ARTERIO name in the header to replay. The opening finishes automatically after 2.8 seconds; Escape dismisses it from the keyboard. Reduced-motion preferences bypass it. The solid atlas uses white tissue, grey coronary vessels and cyan selection.
+Each page keeps its own scroll position while the site is open. Navigation updates the page URL, so refreshing keeps the selected page and replays its entrance from the top. Heart Explorer uses a black-and-white heart-logo reveal; the other four pages use the black-and-cyan ARTERIO reveal. The navigation stays visible. Click the ARTERIO name in the header to replay the current entrance. Each finishes automatically after 2.8 seconds; Escape dismisses it, and reduced-motion preferences bypass it. Changing an input on the current page does not replay the entrance. The solid atlas uses white tissue, grey coronary vessels and cyan selection.
 
 ## Pages
 
@@ -42,6 +42,7 @@ See [project map](docs/PROJECT_MAP.md) for file responsibilities. Runtime commen
 
 ```sh
 .venv/bin/python -m unittest discover -s tests -v
+node --test tests/test_navigation.cjs
 ```
 
 ## Development tools

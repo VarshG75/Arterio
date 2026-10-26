@@ -1,52 +1,38 @@
-<style>
-.arterio-opening{position:fixed;inset:0;z-index:999999;display:grid;place-items:center;color:#49edff;isolation:isolate;overflow:hidden;--intro-ease:cubic-bezier(.76,0,.24,1)}
-.arterio-opening::before,.arterio-opening::after{content:"";position:absolute;left:0;width:100%;height:50.1%;background:#020405;z-index:-1;animation:arterio-shutter 950ms var(--intro-ease) 1750ms forwards}
+<!doctype html><html><head><style>
+.arterio-opening{position:fixed;inset:0;z-index:24;display:grid;place-items:center;color:#49edff;isolation:isolate;overflow:hidden;--intro-ease:cubic-bezier(.76,0,.24,1);--word-width:clamp(180px,32vw,480px);touch-action:none}
+.arterio-opening::before,.arterio-opening::after{content:"";position:absolute;left:0;width:100%;height:50.1%;background:#020204;z-index:-1;animation:arterio-shutter 950ms var(--intro-ease) 1750ms forwards}
 .arterio-opening::before{top:0;border-bottom:1px solid #49edff33;--exit:-101%}.arterio-opening::after{bottom:0;--exit:101%;border-top:1px solid #49edff33}
-.arterio-opening__identity{display:flex;align-items:center;gap:25px;animation:arterio-identity-out 650ms var(--intro-ease) 1650ms forwards;max-width:90vw}
-.arterio-opening__symbol{width:clamp(65px,9vw,130px);height:auto;overflow:visible;filter:drop-shadow(0 0 22px #49edff26)}
+.arterio-opening__identity{display:flex;align-items:center;gap:25px;animation:arterio-identity-out 650ms var(--intro-ease) 1650ms forwards;max-width:92vw}
+.arterio-opening__symbol{width:clamp(65px,9vw,130px);flex-shrink:0;height:auto;overflow:visible;filter:drop-shadow(0 0 22px #49edff26)}
 .arterio-opening__symbol path{fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:square;stroke-dasharray:1;stroke-dashoffset:1;animation:arterio-draw 850ms var(--intro-ease) 80ms forwards}
 .arterio-opening__symbol .arterio-crossbar{animation-delay:320ms;stroke-width:3}
 .arterio-opening__word{overflow:hidden;width:0;opacity:0;animation:arterio-word 850ms var(--intro-ease) 580ms forwards}
-.arterio-opening__name{font:500 clamp(36px,7vw,100px)/1 system-ui,sans-serif;letter-spacing:-.065em;white-space:nowrap;margin:0;color:#e9fdff}
-.arterio-opening__descriptor{display:block;font:9px/1.5 ui-monospace,monospace;letter-spacing:.25em;margin-top:18px;white-space:nowrap;color:#49edff}
-
-
+.arterio-opening__name{font:500 clamp(36px,7vw,100px)/1.15 system-ui,sans-serif;letter-spacing:-.065em;white-space:nowrap;margin:0;color:#e9fdff}
+.arterio-opening__descriptor{display:block;font:9px/1.5 ui-monospace,monospace;letter-spacing:.25em;margin-top:18px;white-space:nowrap;color:currentColor}
+.arterio-opening--heart{color:#fff;--word-width:clamp(210px,49vw,700px)}
+.arterio-opening--heart .arterio-opening__name{color:#f5f5f5;font-size:clamp(28px,5.2vw,76px);letter-spacing:-.055em}
+.arterio-opening--heart .arterio-opening__symbol{filter:none}
+.arterio-opening--heart::before,.arterio-opening--heart::after{border-color:#ffffff26}
 button.nav-brand{background:none;border:0;padding:0;cursor:pointer;text-align:left}button.nav-brand:focus-visible{outline:1px solid #49edff;outline-offset:5px}
 @keyframes arterio-draw{to{stroke-dashoffset:0}}
-@keyframes arterio-word{to{width:clamp(180px,32vw,480px);opacity:1}}
+@keyframes arterio-word{to{width:var(--word-width);opacity:1}}
 @keyframes arterio-identity-out{to{opacity:0;transform:translateY(-25px) scale(.96);filter:blur(4px)}}
 @keyframes arterio-shutter{to{transform:translateY(var(--exit))}}
-@media(max-width:600px){.arterio-opening__identity{gap:16px}.arterio-opening__descriptor{font-size:7px;letter-spacing:.12em;margin-top:10px}}
+@media(max-width:600px){.arterio-opening__identity{gap:12px}.arterio-opening__symbol{width:58px}.arterio-opening__descriptor{font-size:7px;letter-spacing:.12em;margin-top:10px}}
 @media(prefers-reduced-motion:reduce){.arterio-opening{display:none}}
-</style>
+</style></head><body>
+<script id="arterio-page-config" type="application/json">__PAGE_CONFIG__</script>
+<script id="arterio-navigation-source" type="text/plain">__NAVIGATION_SCRIPT__</script>
 <script>
-(()=>{
-  const host=window.parent.document, scope=window.parent;
-  let style=host.getElementById('arterio-opening-style');
-  if(!style){style=host.createElement('style');style.id='arterio-opening-style';host.head.appendChild(style);}
-  style.textContent=document.querySelector('style').textContent;
-  const key='arterio-opening-v1';
-
-  function playOpening(){
-    if(host.getElementById('arterio-opening')||scope.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-    const previous=host.activeElement;
-    const overlay=host.createElement('div');overlay.id='arterio-opening';overlay.className='arterio-opening';
-    overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','ARTERIO opening');
-    overlay.innerHTML='<div class="arterio-opening__identity"><svg class="arterio-opening__symbol" viewBox="0 0 100 112" aria-hidden="true"><path pathLength="1" d="M9 103 L50 9 L91 103"/><path class="arterio-crossbar" pathLength="1" d="M20 76 H38 L45 64 L53 87 L61 76 H80"/></svg><div class="arterio-opening__word"><p class="arterio-opening__name">ARTERIO.</p><span class="arterio-opening__descriptor">THE SCIENCE BEHIND THE PULSE</span></div></div>';
-    host.body.appendChild(overlay);
-    overlay.tabIndex=-1;
-    let timer;
-    function finish(){clearTimeout(timer);host.removeEventListener('keydown',keys,true);overlay.remove();if(previous?.isConnected)previous.focus({preventScroll:true});}
-    function keys(event){if(event.key==='Escape'){event.preventDefault();finish();}else if(event.key==='Tab'){event.preventDefault();overlay.focus({preventScroll:true});}}
-    host.addEventListener('keydown',keys,true);overlay.focus({preventScroll:true});
-    timer=setTimeout(finish,2800);
-  }
-  if(!scope.__arterioOpeningInstalled){
-    scope.__arterioOpeningInstalled=true;
-    host.addEventListener('click',event=>{if(event.target.closest('[data-replay-intro]'))playOpening();});
-  }
-  let seen=false;try{seen=scope.sessionStorage.getItem(key)==='1';scope.sessionStorage.setItem(key,'1');}catch{}
-  // With unavailable storage, avoid repeating the intro on every widget rerun.
-  if(!seen&&!scope.__arterioOpeningPlayed){scope.__arterioOpeningPlayed=true;playOpening();}
+(() => {
+  // Install in the host realm so timers survive Streamlit replacing this iframe.
+  const host = window.parent.document;
+  const script = host.createElement('script');
+  const config = document.getElementById('arterio-page-config').textContent;
+  const css = JSON.stringify(document.querySelector('style').textContent);
+  script.textContent = `(() => {${document.getElementById('arterio-navigation-source').textContent}\ninstallPageNavigation(${config}, ${css});})();`;
+  host.head.appendChild(script);
+  script.remove();
 })();
 </script>
+</body></html>
