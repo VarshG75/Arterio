@@ -1,0 +1,13 @@
+.st-key-page_clinical-docs{max-width:1120px}
+.st-key-page_clinical-docs [data-testid="stMarkdownContainer"] p,.st-key-page_clinical-docs [data-testid="stMarkdownContainer"] ul,.st-key-page_clinical-docs [data-testid="stMarkdownContainer"] ol{max-width:72ch;font-size:16px;line-height:1.85;color:#c7d0d7}
+.st-key-page_clinical-docs [data-testid="stCaptionContainer"] p{font-size:14px;line-height:1.8;color:#a7b4bf}
+.st-key-page_clinical-docs h3{margin-top:12px}
+.st-key-page_clinical-docs a{color:#73e8f3}
+.st-key-page_clinical-docs .clinical-lead{max-width:64ch;font-size:18px;line-height:1.8;color:#bbc7d0;margin:12px 0 26px}
+.st-key-page_clinical-docs .clinical-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px;list-style:none;padding:0;margin:0 0 28px;max-width:1100px}
+.st-key-page_clinical-docs .clinical-flow li{position:relative;background:#0c1017b3;border:1px solid #ffffff20;border-radius:20px;padding:24px}
+.st-key-page_clinical-docs .clinical-flow span{font:11px 'JetBrains Mono',monospace;color:#00f2fe;letter-spacing:.08em}
+.st-key-page_clinical-docs .clinical-flow h2{font:400 28px Newsreader,Georgia,serif;margin:12px 0;color:#f3f6f8;letter-spacing:-.02em}
+.st-key-page_clinical-docs .clinical-flow p{font:15px/1.8 Inter,system-ui,sans-serif;color:#b5c2cd;margin:0}
+.st-key-page_clinical-docs [data-testid="stExpander"] summary{min-height:52px}
+.st-key-page_clinical-docs [data-testid="stExpander"] summary p{font-size:16px}

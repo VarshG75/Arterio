@@ -29,6 +29,6 @@ def inspect_recording(upload):
         raise ValueError('The video decoder could not read this recording. Try an original H.264 MP4.') from error
 
 
-def analyze_recording(upload, allow_short=False, height_m=1.75):
+def analyze_recording(upload, allow_short=False, height_m=1.75, progress=None):
     with recording_path(upload) as path:
-        return analyze_live_video(path, allow_short=allow_short, height_m=height_m)
+        return analyze_live_video(path, allow_short=allow_short, height_m=height_m, progress=progress)

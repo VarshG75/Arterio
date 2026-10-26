@@ -29,7 +29,7 @@ def mean_red_channel(frame):
     return float(cv2.sumElems(frame)[2] / (frame.shape[0] * frame.shape[1]))
 
 
-def extract_red_signal(filepath, metadata=None):
+def extract_red_signal(filepath, metadata=None, *, progress=None):
     """Decode at most 25 seconds; release the decoder even when a frame fails."""
     metadata = metadata or video_metadata(filepath)
     fps = metadata['fps']
@@ -38,12 +38,18 @@ def extract_red_signal(filepath, metadata=None):
         if not cap.isOpened():
             raise ValueError('Could not open the video.')
         times, reds = [], []
-        for _ in range(int(MAX_DURATION * fps)):
+        limit = int(MAX_DURATION * fps)
+        expected = max(1, min(limit, int(metadata.get('frames', limit))))
+        update_every = max(1, expected // 40)
+        for index in range(limit):
             ok, frame = cap.read()
             if not ok:
                 break
             times.append(cap.get(cv2.CAP_PROP_POS_MSEC) / 1000)
             reds.append(mean_red_channel(frame))
+            if progress and (index == 0 or (index + 1) % update_every == 0):
+                progress(.10 + .68 * min((index + 1) / expected, 1),
+                         f'Reading video · {index + 1:,} / {expected:,} expected frames')
         times, reds = np.asarray(times), np.asarray(reds)
         if len(reds) < 2:
             raise ValueError('No usable video frames. Try an original H.264 MP4.')
@@ -61,12 +67,14 @@ def resample_uniform(times, values, target_fs=TARGET_FS):
     return resample_signal(values, TARGET_FS, target_fs, source_times=times)[1]
 
 
-def analyze_live_video(filepath, *, allow_short=False, height_m=1.75):
+def analyze_live_video(filepath, *, allow_short=False, height_m=1.75, progress=None):
     """Short clips require explicit consent. Errors never receive invented metrics."""
     result = dict(heart_rate_bpm=None, stiffness_index=None, reflection_index=None,
                   clean_wave_array=[], raw_wave_array=[], beat_indices=[], feet_indices=[],
                   sample_rate_hz=TARGET_FS, quality='error', message='', warnings=[])
     try:
+        if progress:
+            progress(.02, 'Checking recording metadata')
         metadata = video_metadata(filepath)
         duration = metadata['duration']
         result.update(recorded_duration=duration, is_short_duration=duration < 20, capture_metadata=metadata)
@@ -76,7 +84,11 @@ def analyze_live_video(filepath, *, allow_short=False, height_m=1.75):
         if gate == 'hold' and not allow_short:
             result.update(quality='hold', message='Record 20–25 seconds, or explicitly proceed with this shorter window.')
             return result
-        times, reds = extract_red_signal(filepath, metadata)
+        if progress:
+            progress(.10, 'Reading video · decoding the original frames')
+        times, reds = extract_red_signal(filepath, metadata, progress=progress)
+        if progress:
+            progress(.80, f'Checking capture quality · {len(reds):,} frames decoded')
         decoded_duration = len(reds) / metadata['fps']
         actual_duration = min(duration, decoded_duration) if decoded_duration < MAX_DURATION else duration
         if duration_gate(actual_duration) == 'reject':
@@ -88,7 +100,11 @@ def analyze_live_video(filepath, *, allow_short=False, height_m=1.75):
         values, fps, quality = clamp_and_validate_buffer(reds, metadata['fps'])
         first = int(np.ceil(SETTLING_SECONDS * fps))
         last = len(reds) - int(np.ceil(RELEASE_SECONDS * fps))
+        if progress:
+            progress(.88, 'Analyzing waveform · filtering and locating pulse landmarks')
         processed = process_trimmed_signal(values, fps, height_m, times[first:last])
+        if progress:
+            progress(.96, 'Preparing waveform and measurement results')
         quality.update(recorded_duration=actual_duration, is_short_duration=actual_duration < 20,
                        was_clamped=duration > MAX_DURATION, fps_fallback=metadata['fps_fallback'])
         warnings = list(processed['timing_warnings'])
@@ -113,6 +129,8 @@ def analyze_live_video(filepath, *, allow_short=False, height_m=1.75):
                       message=('Waveform processing complete.' if processed['status'] == 'OK' else
                                'Timing quality did not pass. Pulse and reflection metrics are withheld.' if not processed['timing_quality'] else
                                'A repeatable secondary landmark could not be measured in at least four beats. Missing metrics are left blank.'))
+        if progress:
+            progress(1.0, 'Waveform ready')
     except (ValueError, cv2.error, OSError) as error:
         result['message'] = str(error)
     return result

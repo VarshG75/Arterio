@@ -1,36 +1,52 @@
-"""Physiology, methods, sources and validation status."""
+"""A readable overview with expandable methods, sources and validation status."""
+from pathlib import Path
+
 import streamlit as st
 from views.acquisition import render_protocol
 
+STYLES = Path(__file__).resolve().parents[1] / 'assets/clinical/reading.css'
+
 
 def render_clinical_docs_view():
+    st.html('<style>' + STYLES.read_text() + '</style>')
     st.markdown('<div class="section-pill">03 / SCIENCE & METHODS</div><div class="hero-title">Behind the pulse.</div>', unsafe_allow_html=True)
-    st.write('ARTERIO brings fingertip optical capture, waveform analysis and heart anatomy into one interface. Explore how the signal is acquired, which features are measured and how the system is evaluated.')
+    st.html('''<p class="clinical-lead">From light at your fingertip to the shape of a pulse. Understand what we capture, how we process it, and what the measurements mean.</p>
+<ol class="clinical-flow" aria-label="From recording to interpretation">
+<li><span>01 / CAPTURE</span><h2>Light becomes data.</h2><p>A rear-camera recording with the video light ON captures changing brightness at the fingertip.</p></li>
+<li><span>02 / PROCESS</span><h2>Find a repeatable pulse.</h2><p>We filter the optical trace, compare beat shapes and locate candidate landmarks.</p></li>
+<li><span>03 / INTERPRET</span><h2>Show the measurements.</h2><p>SI relates height to a landmark delay. RI compares amplitudes above the pulse foot. Missing landmarks stay missing.</p></li>
+</ol>''')
+
     st.subheader('Why this problem matters')
-    st.write('Accessible vascular screening is the project’s long-term goal. The current application measures optical pulse features and helps explain the physiology behind them.')
+    st.write('Accessible vascular screening is our long-term goal. The current application measures optical pulse features and helps explain the physiology behind them.')
     st.markdown('We identified a relevant local source: the [2022 Williamson County Community Health Assessment](https://www.healthywilliamsoncounty.org/content/sites/wcchd/2022cha/2022WilliamsonTXCHA_FINAL.pdf), which lists heart disease as the county’s leading cause of death in 2020. This historical finding motivates the project; it does not establish screening performance.')
 
-    st.subheader('From circulation to a camera signal')
-    st.write('The right heart pumps blood toward the lungs. The left heart pumps oxygen-rich blood through the aorta. Fingertip photoplethysmography records changing light intensity associated with local pulsatile blood volume. Pressure, motion, temperature and camera exposure affect the recorded contour.')
-    st.markdown('Anatomy reference: [NIH / NHLBI — Blood flow through the heart](https://www.nhlbi.nih.gov/health/heart/blood-flow). The Heart Explorer uses source-mapped anatomical reference meshes for its chambers, valves and coronary vessels.')
+    st.subheader('What the camera sees')
+    st.write('The right heart pumps blood toward the lungs. The left heart pumps oxygen-rich blood through the aorta. Fingertip photoplethysmography records changing light intensity associated with local pulsatile blood volume. It does not image the heart.')
+    st.write('Pressure, motion, temperature and automatic camera adjustments affect the contour. A steady recording and repeatable beats are essential to interpreting its features.')
+    st.markdown('[Explore circulation with NIH / NHLBI](https://www.nhlbi.nih.gov/health/heart/blood-flow), or open Heart Explorer for the interactive anatomy.')
 
-    st.subheader('Acquisition protocol')
-    st.write('Record 20–25 seconds. The first 2 seconds and final 1 second of the processed segment are removed. Under 12 seconds is rejected; 12 to under 20 seconds requires approval. Decoding is capped at 25 seconds. The waveform and accepted-beat count determine whether features can be reported.')
+    st.subheader('Before you record')
+    st.write('Turn the rear flash/video light ON for the full recording—not Auto or Off. Record 20–25 seconds with light contact and the phone supported. Turn AE/AF lock ON, if supported, so brightness and focus stay fixed.')
     render_protocol()
-    st.markdown('Contact-pressure evidence: [Teng & Zhang, 2004](https://doi.org/10.1088/0967-3334/25/5/020). Mean brightness is used as a recording-quality check; it does not measure finger pressure or identify capillary blanching.')
+    with st.expander('Why contact and camera settings matter'):
+        st.write('The first 2 seconds and final 1 second of the processed segment are removed. Under 12 seconds is rejected; 12 to under 20 seconds requires approval. Decoding uses a nominal 25-second frame-count cap. The accepted-beat count determines whether features can be reported.')
+        st.markdown('Contact-pressure evidence: [Teng & Zhang, 2004](https://doi.org/10.1088/0967-3334/25/5/020). Brightness is a recording-quality check; it does not measure pressure or identify capillary blanching.')
+        st.markdown('Camera controls: [Apple — focus and exposure lock](https://support.apple.com/guide/iphone/use-camera-tools-iph3dc593597/ios). Other camera apps use different controls. The uploaded file cannot verify that the light or locks were enabled.')
 
-    st.subheader('Signal processing')
-    st.write('OpenCV computes the full-frame mean red intensity. Shape-preserving PCHIP interpolation creates a uniform 200 Hz grid. A fourth-order Butterworth prototype, represented as second-order sections, is applied forward and backward over 0.5–8.5 Hz. A 15-sample quadratic Savitzky–Golay fit estimates VPG and APG derivatives.')
-    st.write('PCHIP is C¹ continuous. The 200 Hz grid supports numerical processing; camera sampling still sets the captured temporal detail. Forward/backward filtering has zero phase shift and processes a recorded segment. A separate 0.35-second moving-mean detrended trace is available for inspection.')
-    st.markdown('Implementation references: [PCHIP](https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.PchipInterpolator.html), [SOS filtering](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.sosfiltfilt.html) and [Savitzky–Golay derivatives](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html).')
+    with st.expander('How we process the waveform'):
+        st.write('OpenCV computes the full-frame mean red intensity. Shape-preserving PCHIP interpolation creates a uniform 200 Hz grid. A fourth-order Butterworth prototype, represented as second-order sections, is applied forward and backward over 0.5–8.5 Hz. A 15-point quadratic Savitzky–Golay fit estimates VPG and APG derivatives.')
+        st.write('PCHIP is C¹ continuous. The 200 Hz grid supports numerical processing; camera sampling still sets the captured temporal detail. Forward/backward filtering has zero phase shift and processes a recorded segment. A separate 0.35-second moving-mean detrended trace is available for inspection.')
+        st.markdown('Implementation references: [PCHIP](https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.PchipInterpolator.html), [SOS filtering](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.sosfiltfilt.html) and [Savitzky–Golay derivatives](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html). Architecture shows the complete pipeline and scoped local benchmark.')
 
-    st.subheader('Waveform features')
-    st.latex(r'\mathrm{SI}=h/\Delta t\quad[\mathrm{m/s}],\qquad \mathrm{RI}=100\frac{A_{\mathrm{secondary}}-A_{\mathrm{foot}}}{A_{\mathrm{systolic}}-A_{\mathrm{foot}}}\quad[\%]')
-    st.write('SI divides entered height by the delay to a secondary landmark. RI compares secondary and systolic amplitudes relative to the preceding pulse foot. At least four repeatable beat segments and four secondary candidates are required. SI follows the height/delay formulation; it is not a direct pulse-transit velocity measurement.')
-    st.write('Beat shape is compared with a median template after normalization to 100 points. Segments below 0.80 correlation are excluded. Timing must fall within the supported 40–160 BPM processing range with interval coefficient of variation at most 0.20. Secondary candidates are searched within 10%–55% of each cycle. Shoulder and APG b/a features remain candidates for evaluation against reference waveforms.')
-    st.markdown('Physiological definitions: [Millasseau et al., 2002](https://pubmed.ncbi.nlm.nih.gov/12241535/) and [Takazawa et al., 1998](https://pubmed.ncbi.nlm.nih.gov/9719069/).')
+    with st.expander('What SI and RI measure'):
+        st.latex(r'\mathrm{SI}=h/\Delta t\quad[\mathrm{m/s}]')
+        st.latex(r'\mathrm{RI}=100\frac{A_{\mathrm{secondary}}-A_{\mathrm{foot}}}{A_{\mathrm{systolic}}-A_{\mathrm{foot}}}\quad[\%]')
+        st.write('SI divides entered height by the delay to a secondary landmark. RI compares secondary and systolic amplitudes relative to the preceding pulse foot. At least four repeatable beat segments and four secondary candidates are required. SI follows the height/delay formulation; it is not a direct pulse-transit velocity measurement.')
+        st.write('Beats are normalized to 100 points and compared with a median template. Segments below 0.80 correlation are excluded. Timing must lie within the supported 40–160 BPM processing range with interval coefficient of variation at most 0.20. Secondary candidates are searched within 10%–55% of each cycle. These checks measure consistency, not diagnostic confidence.')
+        st.markdown('Physiological definitions: [digital-pulse SI study](https://pubmed.ncbi.nlm.nih.gov/12241535/) and [acceleration-plethysmogram study](https://pubmed.ncbi.nlm.nih.gov/9719069/). Their results do not validate this phone-camera pipeline.')
 
     with st.expander('Validation status and interpretation'):
-        st.write('Automated checks exercise known generated signals, video decoding, quality gates, input changes and interface behavior. The Architecture page reports a reproducible local signal-processing benchmark with its scope and machine details.')
-        st.write('Independent reference recordings are still required to establish clinical screening accuracy, repeatability across phones and reliable physiological landmark identification. Synthetic tests and frequency analysis of the same camera signal do not provide independent clinical validation. Disease tiers, vascular age and blood pressure are not reported. ARTERIO has no established equivalence to ABI or other clinical tests.')
+        st.write('Automated checks exercise generated signals, video decoding, quality gates, input changes and interface behavior. The Architecture page reports a reproducible local signal-processing benchmark with its input and machine details.')
+        st.write('Independent reference recordings are still required to establish clinical screening accuracy, repeatability across phones and reliable physiological landmark identification. Synthetic tests and frequency analysis of the same optical signal do not provide independent clinical validation. Disease tiers, vascular age and blood pressure are not reported. ARTERIO has no established equivalence to ABI or other clinical tests.')
     st.caption('Research use. Clinical screening accuracy has not yet been established; these outputs should not guide medical decisions.')

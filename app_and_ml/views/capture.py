@@ -33,16 +33,17 @@ def reset_capture():
 
 def render_capture():
     st.markdown('''<div class="capture-guide"><div class="bento-label">BEFORE YOU RECORD</div>
+<aside class="capture-flash-required"><strong>Flash / video light: ON <span>REQUIRED</span></strong><p>Use the rear camera in Video mode. Choose <b>ON</b>, not Auto or Off, and keep the light on for the entire recording.</p></aside>
 <div class="capture-specs"><div><strong>1080p · 60 FPS</strong><span>720p / 30 FPS also supported</span></div><div><strong>20 seconds+</strong><span>Aim for 20–25 seconds, with the phone resting flat</span></div><div><strong>Light contact</strong><span>Cover the rear lens and adjacent light without pressing hard</span></div></div>
-<p>Keep your hand supported and still. Lock exposure and focus if your camera allows it. Upload the original camera video. Stop if you feel discomfort or the phone becomes warm.</p></div>''', unsafe_allow_html=True)
+<p><b>AE/AF lock: ON, if supported.</b> This keeps brightness and focus fixed, stopping automatic adjustments. Keep the flash ON too. Rest your hand and phone on a table, then record. Upload the original camera video. Stop if you feel discomfort or the phone becomes warm.</p></div>''', unsafe_allow_html=True)
     render_protocol()
     if st.session_state.pop('capture_notice', False):
-        st.info('Ready for a new take. Record a fresh 20–25 second video, then upload the original file below.')
+        st.info('Ready for a new take. Record a fresh 20–25 second video with the flash/video light ON throughout, then upload the original file below.')
     version = st.session_state.get('capture_version', 0)
     uploaded = st.file_uploader('Upload your original fingertip video', type=['mp4', 'mov', 'avi'],
                                 key=f'capture_video_{version}',
                                 on_change=upload_changed, args=(f'capture_video_{version}',),
-                                help='Original rear-camera video, preferably 1080p / 60 FPS, 20–25 seconds, with gentle contact.')
+                                help='Original rear-camera video with flash/video light ON throughout (not Auto), preferably 1080p / 60 FPS for 20–25 seconds, with gentle contact.')
     analyze = False
     if uploaded is not None:
         upload_id = uploaded.file_id
@@ -59,7 +60,9 @@ def render_capture():
         error = st.session_state.get('capture_error')
         if error:
             st.error(error)
-        confirmed = st.checkbox('This is the original fingertip camera video, not a screen recording.', key=f'capture_confirm_{version}_{upload_id}')
+        confirmed = st.checkbox('This is the original fingertip video, recorded with the rear flash/video light ON throughout.',
+                                key=f'capture_confirm_flash_{version}_{upload_id}',
+                                help='Use the original camera file, not a screen recording. The video light must remain ON, not Auto.')
         st.number_input('Height (cm), used to calculate SI', min_value=50.0, max_value=250.0,
                                  value=175.0, step=1.0, key='capture_height_cm', on_change=invalidate_measurement, help='Enter your measured height. SI scales directly with this value; it does not measure pulse transit velocity.')
         gate = duration_gate(metadata['duration']) if metadata else 'reject'

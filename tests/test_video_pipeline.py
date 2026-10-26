@@ -74,6 +74,27 @@ class VideoPipelineTests(unittest.TestCase):
         self.assertEqual(vpg.shape, apg.shape)
         self.assertTrue(np.isfinite(apg).all())
 
+    def test_progress_follows_decoded_frames_and_finishes_after_analysis(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self.video(directory, 'progress', 20, lambda t: 180 + 20 * np.sin(2 * np.pi * 1.2 * t))
+            events = []
+            result = analyze_live_video(path, progress=lambda value, message: events.append((value, message)))
+            self.assertIn(result['quality'], ('good', 'partial'))
+            fractions = [value for value, _ in events]
+            self.assertEqual(fractions, sorted(fractions))
+            self.assertEqual(fractions[-1], 1)
+            self.assertTrue(any('600 / 600 expected frames' in message for _, message in events))
+            self.assertIn('Checking capture quality', events[-4][1])
+            self.assertIn('Analyzing waveform', events[-3][1])
+
+    def test_rejected_capture_does_not_report_completed_progress(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self.video(directory, 'dark_progress', 20, lambda t: 10)
+            events = []
+            result = analyze_live_video(path, progress=lambda value, message: events.append((value, message)))
+            self.assertEqual(result['quality'], 'error')
+            self.assertLess(max(value for value, _ in events), 1)
+
 
 if __name__ == '__main__':
     unittest.main()

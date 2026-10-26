@@ -1,0 +1,36 @@
+.st-key-page_telemetry .capture-flash-required{margin:20px 0;padding:20px 22px;background:#00f2fe0a;border:1px solid #00f2fe55;border-radius:16px}
+.st-key-page_telemetry .capture-flash-required>strong{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:#e9fdff;font-size:20px;font-weight:600}
+.st-key-page_telemetry .capture-flash-required strong span{font:11px 'JetBrains Mono',monospace;color:#00f2fe;letter-spacing:.08em}
+.st-key-page_telemetry .capture-flash-required p{margin:10px 0 0;color:#c7d6df;font-size:15px;line-height:1.7}
+.st-key-page_telemetry .capture-guide>p{font-size:15px;color:#b4c0c9}
+.st-key-page_telemetry .capture-specs span{font-size:14px;color:#acb7c0}
+.st-key-page_telemetry .bento-label{color:#9aaab8}
+.st-key-page_telemetry [data-testid="stCaptionContainer"] p{font-size:14px;line-height:1.7;color:#aab7c1}
+.st-key-page_telemetry .st-key-beat_calculations{border:1px solid #00f2fe33;background:#00f2fe06;border-radius:16px;padding:20px}
+.st-key-page_telemetry .st-key-telemetry_progress{padding:18px;border:1px solid #ffffff20;border-radius:16px;background:#0c1015}
+@media(max-width:700px){
+ body:has(.st-key-page_telemetry) .stMainBlockContainer{padding:168px 16px 28px!important;max-width:100%!important;min-width:0!important}
+ .st-key-page_telemetry{min-width:0;max-width:100%}
+ .st-key-page_telemetry .hero-title{font-size:clamp(42px,13vw,58px)!important;line-height:1.05!important}
+ .st-key-page_telemetry .hero-caption{font-size:16px;line-height:1.65;margin-bottom:24px}
+ .st-key-page_telemetry .capture-guide{padding:18px 0;margin-bottom:18px}
+ .st-key-page_telemetry .capture-flash-required{padding:16px;margin-top:16px}
+ .st-key-page_telemetry .capture-flash-required>strong{font-size:18px;gap:8px}
+ .st-key-page_telemetry .capture-specs{grid-template-columns:1fr;gap:20px;margin:24px 0}
+ .st-key-page_telemetry .capture-specs strong{margin-top:0;font-size:17px}
+ .st-key-page_telemetry .capture-specs span{font-size:14px}
+ .st-key-page_telemetry .capture-guide p{font-size:15px}
+ .st-key-page_telemetry [data-testid="stHorizontalBlock"]{flex-direction:column!important;align-items:stretch!important;gap:12px!important}
+ .st-key-page_telemetry [data-testid="stColumn"]{width:100%!important;flex:1 1 100%!important;min-width:0!important}
+ .st-key-page_telemetry .bento-card{padding:20px}
+ .st-key-page_telemetry .bento-metric{font-size:2.8rem}
+ .st-key-page_telemetry .bento-subtext{font-size:14px}
+ .st-key-page_telemetry .section-pill,.st-key-page_telemetry .red-orange-pill-badge{white-space:normal;line-height:1.7;font-size:10px;max-width:100%}
+ .st-key-page_telemetry [data-testid="stFileUploaderDropzone"]{padding:16px;gap:12px!important;min-width:0}
+ .st-key-page_telemetry [data-testid="stFileUploaderDropzone"] button{width:100%;min-height:48px;min-width:0}
+ .st-key-page_telemetry [data-testid="stFileUploaderDropzoneInstructions"]{min-width:0;flex-basis:100%}
+ .st-key-page_telemetry [data-testid="stMarkdownContainer"] p{overflow-wrap:anywhere}
+ .st-key-page_telemetry [data-testid="stPlotlyChart"]{min-width:0;max-width:100%;overflow:hidden}
+ .st-key-page_telemetry button{min-height:44px}
+ .st-key-page_telemetry .st-key-beat_calculations{padding:16px}
+}

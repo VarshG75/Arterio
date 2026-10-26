@@ -1,4 +1,6 @@
 """Shared ARTERIO dashboard styling."""
+from pathlib import Path
+
 import streamlit as st
 
 def inject_editorial_theme():
@@ -177,8 +179,6 @@ def inject_editorial_theme():
         .st-key-site_navigation [data-testid="stElementContainer"],.st-key-site_navigation [data-testid="stVerticalBlock"]{position:static!important;gap:0!important}
         .st-key-site_navigation .nav-bar-container{position:relative;inset:auto;margin:0;padding:12px 22px;background:#06090bf2}
         .st-key-site_navigation [data-testid="stRadio"]{position:absolute!important;top:11px;left:19vw;right:13vw;width:auto!important;margin:0!important}
-        @media(max-width:1200px){.st-key-site_navigation [data-testid="stRadio"]{top:66px;left:0;right:0}.block-container{padding-top:158px!important}}
-        @media(max-width:700px){.st-key-site_navigation{top:10px;left:14px;right:14px}.st-key-site_navigation .nav-bar-container{padding:10px 14px}.st-key-site_navigation [data-testid="stRadio"]{top:61px;left:0;right:0}[data-testid="stRadio"] label[data-testid="stRadioOption"]{padding:8px 10px!important}[data-testid="stRadio"] label p{font-size:.62rem!important}.block-container{padding-top:174px!important}}
 
         /* Typography */
         .hero-title {
@@ -363,3 +363,6 @@ def inject_editorial_theme():
 [data-testid="stExpander"]{border:1px solid #ffffff18!important;border-radius:18px!important;background:rgba(12,12,18,.7);backdrop-filter:blur(14px)}
 </style>
     """)
+
+    navigation_css = Path(__file__).with_name("assets").joinpath("brand/navigation.css").read_text()
+    st.html(f"<style>{navigation_css}</style>")

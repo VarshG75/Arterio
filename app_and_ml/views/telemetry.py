@@ -1,10 +1,13 @@
 """Upload workflow and measured waveform results."""
-import numpy as np
-import plotly.graph_objects as go
+from pathlib import Path
+from time import perf_counter
 import streamlit as st
 
 from services.recordings import analyze_recording
 from views.capture import render_capture
+from views.waveform import overview_figure, render_beat_inspector
+
+STYLES = Path(__file__).resolve().parents[1] / 'assets/telemetry/telemetry.css'
 
 
 def _metric(value, places=2):
@@ -22,22 +25,8 @@ def render_results(data):
         st.warning(warning)
     if data['quality'] == 'partial':
         st.info(data['message'])
-    time_axis = np.asarray(data['time_axis'])
-    raw, clean = np.asarray(data['raw_wave_array']), np.asarray(data['clean_wave_array'])
-    peaks = np.asarray(data['beat_indices'], dtype=int)
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=time_axis, y=raw, mode='lines', name='Mean red · centered',
-                             line=dict(color='#646d75', width=1), hovertemplate='Raw: %{y:.2f}<extra></extra>'))
-    fig.add_trace(go.Scatter(x=time_axis, y=clean, mode='lines', name='SOS Butterworth · 0.5–8.5 Hz',
-                             line=dict(color='#e8edf0', width=2), hovertemplate='Filtered: %{y:.2f}<extra></extra>'))
-    fig.add_trace(go.Scatter(x=time_axis[peaks], y=clean[peaks], mode='markers', name='Candidate systolic peaks',
-                             marker=dict(color='#00f2fe', size=6), hovertemplate='Peak: %{x:.2f}s<extra></extra>'))
-    fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=360,
-                       margin=dict(l=0, r=0, t=40, b=0), hovermode='x unified',
-                       xaxis=dict(title='Processed time (seconds)', gridcolor='rgba(255,255,255,0.035)', zeroline=False, color='#99a3ac'),
-                       yaxis=dict(title='Relative red intensity', gridcolor='rgba(255,255,255,0.035)', zeroline=False, color='#99a3ac'),
-                       legend=dict(orientation='h', y=1.15, font=dict(size=11, color='#a5afb7')))
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(overview_figure(data), width='stretch', key='telemetry_overview',
+                    config={'displaylogo': False, 'responsive': True})
     columns = st.columns(3)
     entries = [('PULSE RATE', _metric(data['heart_rate_bpm'], 0), 'BPM', 'Estimated from median optical peak intervals.'),
                ('STIFFNESS INDEX · SI', _metric(data['stiffness_index']), 'm/s', f"Height {data['height_m'] * 100:.0f} cm divided by the secondary-landmark delay."),
@@ -46,6 +35,7 @@ def render_results(data):
         with column:
             st.markdown(f'<div class="bento-card"><div class="bento-label">{label}</div><div class="bento-metric">{value} <small>{unit}</small></div><div class="bento-subtext">{note}</div></div>', unsafe_allow_html=True)
     st.caption(f"{data['accepted_beats']} repeatable beat segments · {data['reflection_beats']} secondary-landmark candidates · median template correlation {data['sqi_score']:.2f}. Correlation is a shape-consistency score, not diagnostic confidence.")
+    render_beat_inspector(data)
     with st.expander('Signal processing details'):
         st.write(f"Start trim: 2.0s · End trim: 1.0s · Processed segment: {data['processed_duration']:.1f}s · Height: {data['height_m'] * 100:.0f} cm")
         st.write('PCHIP at 200 Hz → fourth-order Butterworth prototype in SOS form → forward/backward filtering → Savitzky–Golay derivatives. The moving-average detrended trace is available separately; landmarks use the bandpassed contour to avoid treating detrending artifacts as peaks.')
@@ -56,16 +46,29 @@ def render_results(data):
 
 
 def render_telemetry_view():
+    st.html('<style>' + STYLES.read_text() + '</style>')
     st.markdown('''<div class="page-transition"><div class="section-pill">OPTICAL PULSE TELEMETRY</div><div class="hero-title">ARTERIO.</div><div class="hero-caption">Explore optical pulse waveforms from smartphone video, then discover the anatomy behind the signal.</div></div>''', unsafe_allow_html=True)
     uploaded, analyze = render_capture()
     if uploaded is not None and analyze:
         st.session_state.update(telemetry_computed=False, telemetry_data={})
-        with st.spinner('Reading the recording and checking the pulse waveform…'):
+        started = perf_counter()
+        with st.container(key='telemetry_progress'):
+            bar = st.progress(0.0, text='Preparing the recording')
+            elapsed = st.empty()
+            def report(value, message):
+                bar.progress(min(1.0, max(0.0, value)), text=message)
+                elapsed.caption(f'Elapsed {perf_counter() - started:.1f}s · Progress follows decoded frames and completed processing stages.')
             try:
                 result = analyze_recording(uploaded, allow_short=st.session_state.get('short_override', False),
-                                           height_m=st.session_state['capture_height_cm'] / 100)
+                                           height_m=st.session_state['capture_height_cm'] / 100, progress=report)
             except (ValueError, OSError) as error:
                 result = dict(quality='error', message=str(error))
+            if result['quality'] in ('good', 'partial'):
+                bar.progress(1.0, text='Waveform ready' if result['quality'] == 'good' else 'Waveform ready · some indices are unavailable')
+                elapsed.caption(f'Completed in {perf_counter() - started:.1f}s, including video decoding and signal analysis.')
+            else:
+                bar.empty()
+                elapsed.caption(f'Processing stopped after {perf_counter() - started:.1f}s.')
         st.session_state['analysis_result'] = result
         if result['quality'] in ('good', 'partial'):
             st.session_state.update(telemetry_computed=True, telemetry_data=result)
