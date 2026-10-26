@@ -8,7 +8,7 @@ def render_clinical_docs_view():
     st.write('ARTERIO brings fingertip optical capture, waveform analysis and heart anatomy into one interface. Explore how the signal is acquired, which features are measured and how the system is evaluated.')
     st.subheader('Why this problem matters')
     st.write('Accessible vascular screening is the project’s long-term goal. The current application measures optical pulse features and helps explain the physiology behind them.')
-    st.markdown('Shreyas identified a relevant local source: the [2022 Williamson County Community Health Assessment](https://www.healthywilliamsoncounty.org/content/sites/wcchd/2022cha/2022WilliamsonTXCHA_FINAL.pdf), which lists heart disease as the county’s leading cause of death in 2020. This historical finding motivates the project; it does not establish screening performance.')
+    st.markdown('We identified a relevant local source: the [2022 Williamson County Community Health Assessment](https://www.healthywilliamsoncounty.org/content/sites/wcchd/2022cha/2022WilliamsonTXCHA_FINAL.pdf), which lists heart disease as the county’s leading cause of death in 2020. This historical finding motivates the project; it does not establish screening performance.')
 
     st.subheader('From circulation to a camera signal')
     st.write('The right heart pumps blood toward the lungs. The left heart pumps oxygen-rich blood through the aorta. Fingertip photoplethysmography records changing light intensity associated with local pulsatile blood volume. Pressure, motion, temperature and camera exposure affect the recorded contour.')
