@@ -60,7 +60,7 @@ def render_capture():
         if error:
             st.error(error)
         confirmed = st.checkbox('This is the original fingertip camera video, not a screen recording.', key=f'capture_confirm_{version}_{upload_id}')
-        st.number_input('Height (cm), used for the experimental height / delay index', min_value=50.0, max_value=250.0,
+        st.number_input('Height (cm), used to calculate SI', min_value=50.0, max_value=250.0,
                                  value=175.0, step=1.0, key='capture_height_cm', on_change=invalidate_measurement, help='Enter your measured height. SI scales directly with this value; it does not measure pulse transit velocity.')
         gate = duration_gate(metadata['duration']) if metadata else 'reject'
         if metadata:
@@ -75,7 +75,7 @@ def render_capture():
                 st.info('Analysis uses only the first 25 seconds. The start and end trims apply to that segment.')
         left, right = st.columns([2, 1])
         with left:
-            label = 'Proceed with reduced window (low confidence)' if gate == 'hold' else 'Analyze recording'
+            label = 'Proceed with reduced window' if gate == 'hold' else 'Analyze recording'
             analyze = st.button(label, disabled=not confirmed or gate == 'reject', width='stretch')
             if analyze:
                 st.session_state['short_override'] = gate == 'hold'

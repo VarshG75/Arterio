@@ -15,7 +15,7 @@ def render_results(data):
     duration = data['recorded_duration']
     if data['is_short_duration']:
         st.markdown(f'<div class="red-orange-pill-badge"><span>⚠</span> REDUCED SAMPLE WINDOW · {duration:.1f}s RECORDING · 20s+ RECOMMENDED</div>', unsafe_allow_html=True)
-        st.caption('Fewer beats may remain after quality rejection. Statistical confidence intervals are not estimated by this prototype.')
+        st.caption('A shorter recording provides fewer complete beat segments. Review the waveform and repeatability indicators before interpreting the measurements.')
     else:
         st.markdown('<div class="section-pill">● 20S+ RECORDING ACQUIRED // 200 HZ PROCESSING GRID</div>', unsafe_allow_html=True)
     for warning in data['warnings']:
@@ -39,9 +39,9 @@ def render_results(data):
                        legend=dict(orientation='h', y=1.15, font=dict(size=11, color='#a5afb7')))
     st.plotly_chart(fig, width='stretch')
     columns = st.columns(3)
-    entries = [('PULSE FREQUENCY', _metric(data['heart_rate_bpm'], 0), 'BPM', 'Estimated from median optical peak intervals.'),
-               ('HEIGHT / DELAY INDEX', _metric(data['stiffness_index']), 'm/s', f"Experimental SI using height {data['height_m'] * 100:.0f} cm; not measured pulse wave velocity."),
-               ('REFLECTION AMPLITUDE', _metric(data['reflection_index'], 1), '%', 'Experimental RI relative to the preceding pulse foot.')]
+    entries = [('PULSE RATE', _metric(data['heart_rate_bpm'], 0), 'BPM', 'Estimated from median optical peak intervals.'),
+               ('STIFFNESS INDEX · SI', _metric(data['stiffness_index']), 'm/s', f"Height {data['height_m'] * 100:.0f} cm divided by the secondary-landmark delay."),
+               ('REFLECTION INDEX · RI', _metric(data['reflection_index'], 1), '%', 'Secondary-to-systolic amplitude ratio, measured from the pulse foot.')]
     for column, (label, value, unit, note) in zip(columns, entries):
         with column:
             st.markdown(f'<div class="bento-card"><div class="bento-label">{label}</div><div class="bento-metric">{value} <small>{unit}</small></div><div class="bento-subtext">{note}</div></div>', unsafe_allow_html=True)
@@ -52,7 +52,7 @@ def render_results(data):
         if data.get('interval_cv') is not None:
             st.caption(f"Pulse-interval coefficient of variation: {data['interval_cv']:.3f}; processing limit 0.200.")
         st.caption(f"Signal processing time: {data['latency_ms']:.2f} ms on this run, excluding video decoding. APG b/a candidate: {_metric(data['ba_ratio'])}. No vascular age or disease tier is inferred.")
-    st.info('Research waveform descriptors. Secondary peaks and shoulders may have several causes; this app has no validated clinical thresholds, diagnosis or blood-pressure output.')
+    st.caption('Research use. Clinical screening accuracy has not yet been established. These waveform indices do not provide a diagnosis or blood-pressure reading.')
 
 
 def render_telemetry_view():

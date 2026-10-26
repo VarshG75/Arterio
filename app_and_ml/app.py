@@ -16,7 +16,7 @@ from views.cohort import render_cohort_view
 from views.clinical_docs import render_clinical_docs_view
 from views.architecture import render_architecture_view
 
-st.set_page_config(page_title='ARTERIO — Optical Pulse Research', page_icon='🫀',
+st.set_page_config(page_title='ARTERIO — Vascular Screening', page_icon='🫀',
                    layout='wide', initial_sidebar_state='collapsed')
 inject_editorial_theme()
 render_opening()
@@ -24,7 +24,7 @@ st.session_state.setdefault('telemetry_computed', False)
 st.session_state.setdefault('telemetry_data', {})
 
 with st.container(key='site_navigation'):
-    st.markdown('''<div class="nav-bar-container"><button class="nav-brand" data-replay-intro type="button" title="Replay opening" aria-label="Replay ARTERIO opening">ARTERIO.</button><div class="nav-beacon"><div class="beacon-dot"></div>Research prototype</div></div>''', unsafe_allow_html=True)
+    st.markdown('''<div class="nav-bar-container"><button class="nav-brand" data-replay-intro type="button" title="Replay opening" aria-label="Replay ARTERIO opening">ARTERIO.</button><div class="nav-beacon"><div class="beacon-dot"></div>Vascular Screening</div></div>''', unsafe_allow_html=True)
     selected = st.radio('Navigation Menu', options=['Telemetry', 'Heart Explorer', 'Cohort Analytics', 'Clinical Docs', 'Architecture'],
                         index=0, horizontal=True, width='stretch', label_visibility='collapsed')
 

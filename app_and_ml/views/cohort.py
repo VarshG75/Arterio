@@ -16,12 +16,12 @@ def simulation():
 
 def render_cohort_view():
     st.markdown('<div class="section-pill">02 / SIMULATED DATA STUDY</div><div class="hero-title">Explore the patterns.</div>', unsafe_allow_html=True)
-    st.write('An interactive demonstration using 800 simulated observations. These are not patient records, clinical reference ranges, or validated risk predictions.')
+    st.write('Explore 800 simulated observations. Q is a dimensionless simulation variable, separate from Telemetry’s SI in m/s; these data are not patient records.')
     age_col, bin_col, mode_col = st.columns([1, 1, 1.4])
     with age_col:
         ages = st.slider('Simulated age range', 18, 95, (18, 95))
     with bin_col:
-        selected = st.selectbox('Experimental timing-ratio bin', ['All values', 'Q < 3', '3 ≤ Q ≤ 4', 'Q > 4'])
+        selected = st.selectbox('Timing-ratio filter', ['All values', 'Q < 3', '3 ≤ Q ≤ 4', 'Q > 4'])
     with mode_col:
         mode = st.selectbox('Explore a view', ['Age trend & confidence band', 'Timing / amplitude density', 'Decade distribution'])
     frame = simulation()
@@ -45,10 +45,10 @@ def render_cohort_view():
             fig.add_trace(go.Scatter(x=grid, y=estimate-band, line=dict(width=0), showlegend=False, hoverinfo='skip'))
             fig.add_trace(go.Scatter(x=grid, y=estimate+band, fill='tonexty', fillcolor='rgba(230,230,235,.10)', line=dict(width=0), name='95% mean-response band', hoverinfo='skip'))
             fig.add_trace(go.Scatter(x=grid, y=estimate, line=dict(color='white', width=2), name='Linear fit'))
-        axes = ('Simulated age (years)', 'Experimental timing ratio Q (dimensionless)')
+        axes = ('Simulated age (years)', 'Simulated timing ratio Q (dimensionless)')
     elif mode == 'Timing / amplitude density':
         fig.add_trace(go.Histogram2dContour(x=frame.r, y=frame.q, colorscale=[[0, '#09090c'], [1, '#eeeeef']], contours=dict(coloring='heatmap'), colorbar=dict(title='Count')))
-        axes = ('Simulated amplitude ratio R', 'Experimental timing ratio Q')
+        axes = ('Simulated amplitude ratio R', 'Simulated timing ratio Q')
     else:
         fig.add_trace(go.Histogram(x=frame.age, xbins=dict(start=10, end=100, size=10), marker_color='#d4d4d8', name='Generated observations'))
         axes = ('Simulated age (decades)', 'Observation count')

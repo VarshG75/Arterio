@@ -26,3 +26,9 @@ Validation: 20 regression tests, array self-check, all five Streamlit routes, Ja
 - Dependencies now select the already-verified desktop OpenCV distribution on macOS and the headless distribution elsewhere. The installed packages satisfy all active macOS requirements.
 
 Remaining limitation: the simple peak detector can mistake a pronounced secondary bump for another primary peak, especially in slow generated pulse profiles. The timing guard rejects these ambiguous traces instead of displaying misleading metrics. Real-phone recordings and reference comparisons are still needed to evaluate acceptance and accuracy.
+
+## Work-report review and newer documentation commits
+
+Reviewed Shreyas's four-page work report and fetched newer upstream commits `8340b2e` and `1ef661c`. These update Architecture, Clinical Docs and README rather than the math engine. The current interface retains its scroll flowchart and current processing specifications; source-backed local context and AI-assistance disclosure are incorporated. Both upstream commits remain in the integration history. Detailed historical/current differences and report corrections are in `REPORT_REVIEW.md`.
+
+The presentation now uses Vascular Screening as the product label, explicit SI/RI units, measured P95 signal-processing latency, concise recording instructions and a visible research-use statement. Simulation disclosures, source credits and validation scope remain intact. All 24 regression tests and five page routes pass after the wording changes.

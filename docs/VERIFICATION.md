@@ -23,8 +23,10 @@
 - Every rotated structure, narrow mobile layout, touch interaction, Canvas fallback and OS reduced-motion setting has not been exhaustively exercised.
 - Duration, brightness, motion-variance and correlation thresholds are engineering choices. Twenty seconds is the recommended app protocol, not a universal clinical standard. Confidence intervals are not estimated. Missing landmarks stay blank.
 - The large CSV and model binary were not scanned or retrained. The legacy saved model is not loaded. Runtime source comments and current documents were reviewed; historical snapshots and third-party credits remain preserved.
-- No commits, pushes, deployments or cloud tasks. The preview runs locally at `127.0.0.1:8501`.
+- Integration and audit changes are committed locally. No pushes, deployments or cloud tasks were performed. The preview runs locally at `127.0.0.1:8501`.
 
 Team integration and audit checks cover structured-pixel averaging, uniform inputs and small frames, bounded interpolation, malformed decoder timestamps, interval consistency, the compatibility API, upload removal and height-change invalidation. Irregular generated traces do not report SI/RI. See `INTEGRATION.md` for upstream commit decisions.
 
 The follow-up audit found and corrected sparse-grid bias and result-invalidation issues. Active macOS requirement versions match the installed environment, and `pip check` reports no broken dependencies. UI assets and source geometry were not changed by the audit; Telemetry was inspected in Chrome and all page routes are checked with AppTest. See `INTEGRATION.md` for scope and remaining peak-detection limits.
+
+Report/presentation revision: reviewed the four-page Shreyas work report and newer upstream documentation changes through `1ef661c`. The header and page title use Vascular Screening; SI/RI labels, units, benchmark scope and validation status remain explicit. Branding assertion, all five routes and all 24 regressions pass. See `REPORT_REVIEW.md` for report corrections and limits of the version comparison.

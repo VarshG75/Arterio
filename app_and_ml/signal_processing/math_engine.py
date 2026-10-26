@@ -220,7 +220,7 @@ def extract_hemodynamic_indices(clean_wave, vpg, apg, peaks, feet, fs=TARGET_FS,
 
 
 def assess_beat_intervals(peaks, fs=TARGET_FS):
-    """Check interval consistency within this prototype's supported range.
+    """Check interval consistency within the supported processing range.
 
     Uneven intervals can have physiological or recording causes. This heuristic
     does not distinguish them and is not an arrhythmia detector.
@@ -239,7 +239,7 @@ def assess_beat_intervals(peaks, fs=TARGET_FS):
     in_range = 40 <= 60 / mean <= 160 and 40 <= bpm <= 160
     consistent = in_range and cv <= .20
     warnings = [] if consistent else [
-        'Pulse intervals are too uneven or outside the prototype’s 40–160 BPM processing range. '
+        'Pulse intervals are too uneven or outside the supported 40–160 BPM processing range. '
         'SI and RI are withheld. Re-record with your hand supported and light contact; '
         'this check cannot identify the cause of uneven intervals.']
     return dict(bpm=bpm if consistent else None, interval_cv=cv,

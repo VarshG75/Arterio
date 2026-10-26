@@ -15,4 +15,4 @@ def render_protocol():
         st.write('Record 20–25 seconds. ARTERIO removes the first 2 seconds and final 1 second of the processed segment; a 20-second clip leaves about 17 seconds before signal-quality rejection.')
         for i, (title, body) in enumerate(PROTOCOL, 1):
             st.markdown(f'**{i}. {title}** — {body}')
-        st.caption('Twenty seconds is this prototype’s acquisition target, not a validated clinical cutoff. More time does not guarantee usable beats. At 60 BPM, 17 seconds contains about 17 cycles before rejected beats are removed.')
+        st.caption('At 60 BPM, the retained 17-second window contains about 17 cycles before quality rejection. The accepted beat count depends on motion, exposure and waveform consistency.')
