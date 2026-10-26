@@ -25,7 +25,12 @@ function createPageMemory() {
   };
 }
 
-if (typeof module !== 'undefined') module.exports = {createPageMemory};
+function entranceFor(page, trigger) {
+  if (trigger === 'navigate' && ['cohort', 'clinical-docs', 'architecture'].includes(page)) return null;
+  return page === 'heart-explorer' ? 'heart' : 'arterio';
+}
+
+if (typeof module !== 'undefined') module.exports = {createPageMemory, entranceFor};
 
 function installPageNavigation(config, openingCSS) {
   const host = document, scope = window;
@@ -49,6 +54,10 @@ function installPageNavigation(config, openingCSS) {
 
     function positionOpening() {
       if (!overlay) return;
+      if (!overlay.classList.contains('arterio-opening--heart')) {
+        overlay.style.top = '0px';
+        return;
+      }
       const navigation = host.querySelector('.st-key-site_navigation');
       const bounds = navigation ? [navigation, ...navigation.querySelectorAll('[data-testid="stRadio"]')] : [];
       const bottom = Math.max(0, ...bounds.map(node => node.getBoundingClientRect().bottom));
@@ -61,10 +70,11 @@ function installPageNavigation(config, openingCSS) {
       overlay = null;
     }
 
-    function playOpening(page) {
+    function playOpening(page, trigger = 'load') {
       finishOpening();
-      if (reduced.matches) return;
-      const heart = page === 'heart-explorer';
+      const entrance = entranceFor(page, trigger);
+      if (!entrance || reduced.matches) return;
+      const heart = entrance === 'heart';
       overlay = host.createElement('div');
       overlay.id = 'arterio-opening';
       overlay.className = `arterio-opening${heart ? ' arterio-opening--heart' : ''}`;
@@ -116,7 +126,7 @@ function installPageNavigation(config, openingCSS) {
     function navigate(page) {
       if (!scroll || !memory.begin(page, scroll.scrollTop)) return;
       startedPage = page;
-      playOpening(page);
+      playOpening(page, 'navigate');
     }
 
     // Capture before React replaces the outgoing view or clamps its scroll height.
@@ -149,10 +159,11 @@ function installPageNavigation(config, openingCSS) {
           scroll = surface;
           scroll.addEventListener('scroll', () => memory.remember(scroll.scrollTop), {passive: true});
         }
+        const initial = memory.active === null;
         const top = memory.enter(page);
         if (top === null) return;
         restorePosition(page, top);
-        if (startedPage !== page) playOpening(page);
+        if (startedPage !== page) playOpening(page, initial ? 'load' : 'navigate');
         startedPage = null;
       },
     };

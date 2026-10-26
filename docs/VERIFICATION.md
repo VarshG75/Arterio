@@ -3,7 +3,7 @@
 ## Automated checks
 
 - 27 Python regression tests pass using generated signals, videos and route checks. Checks include duration boundaries, explicit short-clip consent, result badges, saturation/flat-signal rejection, 25-second clamping, 2/1-second trimming, PCHIP shape preservation, SOS stopband behavior, derivative accuracy, bounded feet, peak/shoulder detection, missing values, motion warnings and retake reset. Page URLs select the intended view after refresh, navigation updates the URL, and unknown routes fall back to Telemetry.
-- Five Node tests cover independent scroll memory, widget reruns, duplicate navigation events, rapid page changes, refresh initialization and temporary scroll-height clamping during view replacement.
+- Six Node tests cover independent scroll memory, widget reruns, duplicate navigation events, rapid page changes, refresh initialization and temporary scroll-height clamping during view replacement, and distinct navigation/refresh entrance rules.
 - All five Streamlit routes render without exceptions with AppTest. The Telemetry workflow tests run through upload inspection, confirmation, analysis and result rendering for 15- and 20-second fixtures.
 - Heart asset checks verify the unchanged base GLB hash, 17 source-mapped extras, finite positions/normals, valid indices and preservation of the opening geometry, allowing comment-only edits.
 - Embedded heart, opening and architecture JavaScript passes `node --check`. Python source parses and `git diff --check` passes.
@@ -34,3 +34,5 @@ The follow-up audit found and corrected sparse-grid bias and result-invalidation
 Report/presentation revision: reviewed the four-page Shreyas work report and newer upstream documentation changes through `1ef661c`. The header and page title use Vascular Screening; SI/RI labels, units, benchmark scope and validation status remain explicit. Branding assertion, all five routes and all 24 regressions pass. See `REPORT_REVIEW.md` for report corrections and limits of the version comparison.
 
 Navigation revision: page positions live in the current browser document; a reload starts the selected page at the top and replays its entrance. Widget updates do not replay it. The controller is installed in the host document so its cleanup timers survive Streamlit replacing the bootstrap iframe. The remaining legacy name in the README was removed; historical source snapshots and the report's original-name references remain preserved. No signal-processing logic changed.
+
+Entrance revision: ARTERIO covers the entire viewport, including the navigation. Clicking Cohort Analytics, Clinical Docs or Architecture skips the entrance; loading or refreshing those routes retains the ARTERIO opening. Telemetry navigation retains ARTERIO, while Heart Explorer keeps its white heart-logo entrance below the navigation. Independent page scroll memory is unchanged.

@@ -1,7 +1,17 @@
 /* Route memory runs without a browser; Chrome checks cover the visible reveal. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {createPageMemory} = require('../app_and_ml/assets/brand/navigation.js');
+const {createPageMemory, entranceFor} = require('../app_and_ml/assets/brand/navigation.js');
+
+test('navigation skips the three reference pages while refresh retains their opening', () => {
+  for (const page of ['cohort', 'clinical-docs', 'architecture']) {
+    assert.equal(entranceFor(page, 'navigate'), null);
+    assert.equal(entranceFor(page, 'load'), 'arterio');
+  }
+  assert.equal(entranceFor('telemetry', 'navigate'), 'arterio');
+  assert.equal(entranceFor('heart-explorer', 'navigate'), 'heart');
+  assert.equal(entranceFor('heart-explorer', 'load'), 'heart');
+});
 
 test('new pages start at the top and remember their own positions', () => {
   const memory = createPageMemory();
