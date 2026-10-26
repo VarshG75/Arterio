@@ -12,7 +12,7 @@ def _style(figure, *, height=420, milliseconds=False):
         height=height, autosize=True, margin=dict(l=0, r=8, t=30, b=20),
         font=dict(family='Inter, sans-serif', size=13, color='#c7d1d8'),
         hovermode='x unified',
-        xaxis=dict(title='Time within this beat (ms)' if milliseconds else 'Processed time (seconds)',
+        xaxis=dict(title='Time within this beat (ms)' if milliseconds else 'Time in recording (seconds)',
                    gridcolor='rgba(255,255,255,0.05)', zeroline=False, automargin=True),
         yaxis=dict(title='Intensity above pulse foot' if milliseconds else 'Relative red intensity',
                    gridcolor='rgba(255,255,255,0.05)', zeroline=False, automargin=True),

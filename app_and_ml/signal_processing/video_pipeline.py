@@ -67,6 +67,72 @@ def resample_uniform(times, values, target_fs=TARGET_FS):
     return resample_signal(values, TARGET_FS, target_fs, source_times=times)[1]
 
 
+REQUIRED_BEATS = 4  # matches the four-beat minimum in math_engine.extract_hemodynamic_indices
+
+
+def build_feedback(processed, quality):
+    """Turn the pipeline's quality results into specific, user-facing notices.
+
+    Each notice separates what the software confirmed from possible causes, says
+    which measurements remain available, and suggests what to change next time.
+    Returns (notices, missing_reasons).
+    """
+    notices, missing = [], {}
+
+    def add(level, title, body, next_step=''):
+        notices.append(dict(level=level, title=title, body=body, next_step=next_step))
+
+    accepted, landmarks, cv = processed['accepted_beats'], processed['reflection_beats'], processed['interval_cv']
+    if not processed['timing_quality']:
+        if cv is None:
+            detail = 'Too few pulse peaks were found to check their timing.'
+        elif cv > .20:
+            detail = f'Beat-to-beat spacing varied by {cv:.1%} (the limit is 20%).'
+        else:
+            detail = 'The detected pulse rate fell outside the supported 40–160 BPM range.'
+        add('error', 'Pulse timing inconsistent',
+            f'Confirmed: {detail} Pulse rate, SI and RI are withheld because they would not be reliable.',
+            'Possible causes: movement, changing fingertip pressure or camera exposure changes. Support your arm, keep light, '
+            'steady contact and record again. This check is not designed to detect heart-rhythm problems.')
+        reason = 'Pulse timing did not pass the consistency check.'
+        missing = dict(pulse=reason, si=reason, ri=reason)
+    elif accepted < REQUIRED_BEATS:
+        add('error', 'Insufficient consistent pulse cycles',
+            'Confirmed: Not enough repeatable pulse waveforms were identified to calculate the requested measurements '
+            f'reliably ({accepted} found, {REQUIRED_BEATS} needed). Pulse rate is still shown; SI and RI are unavailable.',
+            'Possible causes: movement or uneven contact changed the pulse shape from beat to beat. '
+            'Keep your fingertip still with light, steady pressure.')
+        reason = f'Only {accepted} repeatable pulse cycles were found ({REQUIRED_BEATS} needed).'
+        missing = dict(si=reason, ri=reason)
+    elif processed['status'] != 'OK':
+        add('error', 'Secondary waveform feature unavailable',
+            'Confirmed: A repeatable secondary waveform landmark could not be identified '
+            f'(measured in {landmarks} of {accepted} accepted cycles; {REQUIRED_BEATS} needed). '
+            'SI and RI cannot be calculated reliably from this recording. Pulse rate is still shown.',
+            'Possible causes: pressing too firmly can flatten the pulse shape, and some waveforms naturally show a weak '
+            'secondary feature. Try lighter contact and a warm hand. A missing landmark is not a sign of disease.')
+        reason = f'A secondary landmark was measured in only {landmarks} cycles ({REQUIRED_BEATS} needed).'
+        missing = dict(si=reason, ri=reason)
+    if quality.get('motion_warning'):
+        passed = processed['status'] == 'OK'
+        add('info' if passed else 'warning', 'Signal instability detected',
+            'The optical signal contains abrupt changes that may result from movement, fingertip contact, or camera '
+            'exposure adjustments.' + (' The measurements shown still passed every quality check.' if passed else ''),
+            'Support your arm, keep light, steady contact, and lock exposure if your camera allows it.')
+    if processed['status'] == 'OK' and accepted < 10:
+        add('info', 'Short sample',
+            f'Confirmed: {accepted} repeatable pulse cycles were used. Measurements are available, but they rest on fewer cycles.',
+            'A steady 20–25 second recording usually gives more cycles.')
+    if quality.get('was_clamped'):
+        add('info', 'Long recording',
+            'Confirmed: Only the first 25 seconds were decoded; the 2-second start and 1-second end trims apply to that segment.')
+    if quality.get('fps_fallback'):
+        add('warning', 'Frame rate missing',
+            'Confirmed: The video did not report its frame rate, so 30 FPS was assumed. Timing-based values may be inaccurate.',
+            'Upload the original camera file rather than an edited or exported copy.')
+    return notices, missing
+
+
 def analyze_live_video(filepath, *, allow_short=False, height_m=1.75, progress=None):
     """Short clips require explicit consent. Errors never receive invented metrics."""
     result = dict(heart_rate_bpm=None, stiffness_index=None, reflection_index=None,
@@ -107,28 +173,23 @@ def analyze_live_video(filepath, *, allow_short=False, height_m=1.75, progress=N
             progress(.96, 'Preparing waveform and measurement results')
         quality.update(recorded_duration=actual_duration, is_short_duration=actual_duration < 20,
                        was_clamped=duration > MAX_DURATION, fps_fallback=metadata['fps_fallback'])
-        warnings = list(processed['timing_warnings'])
-        if quality['motion_warning']:
-            warnings.append('SIGNIFICANT MOTION ARTIFACT IDENTIFIED. Keep your hand still on a flat desk. Abrupt signal changes can also come from exposure adjustments.')
-        if quality['was_clamped']:
-            warnings.append('Only the first 25 seconds were decoded; the 2-second start and 1-second end trims apply to that segment.')
-        if quality['fps_fallback']:
-            warnings.append('Frame rate was missing. A 30 FPS fallback was used; timing estimates may be inaccurate. Re-export at a known frame rate.')
-        if processed['accepted_beats'] < 10:
-            warnings.append('Fewer than 10 repeatable beat segments remained. Record another steady 20–25 second clip for a longer sample.')
+        offset = float(times[first])
+        notices, missing = build_feedback(processed, quality)
+        warnings = [f"{n['title'].upper()}: {n['body']}" for n in notices]
+        errors = [n['body'] for n in notices if n['level'] == 'error']
         result.update(quality, heart_rate_bpm=processed['bpm'], stiffness_index=processed['si'],
                       reflection_index=processed['ri'], ba_ratio=processed['ba_ratio'], sqi_score=processed['sqi_score'],
                       clean_wave_array=processed['clean_signal'].tolist(), raw_wave_array=processed['raw_signal'].tolist(),
-                      time_axis=processed['time_axis'].tolist(), beat_indices=processed['peaks'].tolist(),
+                      time_axis=(processed['time_axis'] + offset).tolist(), time_offset_s=offset,
+                      beat_indices=processed['peaks'].tolist(),
                       feet_indices=processed['feet'].tolist(), vpg_array=processed['vpg'].tolist(), apg_array=processed['apg'].tolist(),
                       detrended_array=processed['detrended_signal'].tolist(), accepted_beats=processed['accepted_beats'],
                       reflection_beats=processed['reflection_beats'], reflection_records=processed['reflection_records'],
                       latency_ms=processed['latency_ms'], height_m=height_m, status=processed['status'], warnings=warnings,
+                      notices=notices, missing_reasons=missing,
                       interval_cv=processed['interval_cv'], timing_quality=processed['timing_quality'],
                       quality='good' if processed['status'] == 'OK' else 'partial',
-                      message=('Waveform processing complete.' if processed['status'] == 'OK' else
-                               'Timing quality did not pass. Pulse and reflection metrics are withheld.' if not processed['timing_quality'] else
-                               'A repeatable secondary landmark could not be measured in at least four beats. Missing metrics are left blank.'))
+                      message='Waveform processing complete.' if processed['status'] == 'OK' else errors[0])
         if progress:
             progress(1.0, 'Waveform ready')
     except (ValueError, cv2.error, OSError) as error:

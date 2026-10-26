@@ -11,7 +11,7 @@ STAGES = [
     dict(key='capture', name='Capture', title='Light becomes a signal.', subtitle='Optical ingestion & quality checks',
          description='An original camera recording becomes a bounded sequence of brightness samples. Quality checks begin before waveform analysis.',
          metric='20–25 s', unit='recommended recording',
-         context='Rest the phone and hand on a flat surface. Use light finger contact, comfortably warm hands and fixed exposure/focus where supported. Prefer 1080p or 720p at 60 FPS; 30 FPS is supported.',
+         context='Sit with your arms supported on a stable surface. Use light finger contact, comfortably warm hands and fixed exposure/focus where supported. Prefer 1080p or 720p at 60 FPS; 30 FPS is supported.',
          equations='duration ≈ frame_count / FPS\n12 s ≤ duration < 20 s → explicit approval\ndecoded frames ≤ floor(25 · FPS)\ns[k] = Σᵢ Σⱼ Iᵣ(i,j,k) / (H · W)',
          explanation='A temporary file supplies OpenCV with the local upload. OpenCV sums the full frame to retain the spatial red mean without sparse-grid sampling bias. The frame-count cap is based on nominal FPS; it is not a wall-clock execution limit. The first 2 seconds and last 1 second of the decoded segment are trimmed on that nominal frame clock before brightness and motion checks.',
          bounds='O(F · H · W) full-frame reduction\n6.22 MB pixel payload / 1080p BGR frame\n30 ≤ mean red ≤ 250\nDifference-variance ratio > 4 → warning',
