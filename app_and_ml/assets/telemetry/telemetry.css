@@ -8,6 +8,16 @@
 .st-key-page_telemetry [data-testid="stCaptionContainer"] p{font-size:14px;line-height:1.7;color:#aab7c1}
 .st-key-page_telemetry .st-key-beat_calculations{border:1px solid #00f2fe33;background:#00f2fe06;border-radius:16px;padding:20px}
 .st-key-page_telemetry .st-key-telemetry_progress{padding:18px;border:1px solid #ffffff20;border-radius:16px;background:#0c1015}
+.st-key-page_telemetry .st-key-capture_confirmation{padding:20px 22px;border:1px solid #00f2fe66;border-radius:16px;background:#00f2fe08;transition:border-color .2s,background .2s,box-shadow .2s}
+.st-key-page_telemetry .st-key-capture_confirmation [data-testid="stCheckbox"] label{min-height:48px;align-items:center;gap:14px;cursor:pointer}
+.st-key-page_telemetry .st-key-capture_confirmation [data-testid="stCheckbox"] label>div:first-of-type{width:22px;height:22px;min-width:22px;margin-top:0;border-color:#67cbd2}
+.st-key-page_telemetry .st-key-capture_confirmation [data-testid="stCheckbox"] label[data-selected]>div:first-of-type{border-color:#00f2fe;background:#008b98}
+.st-key-page_telemetry .st-key-capture_confirmation [data-testid="stCheckbox"] p{font-size:17px!important;line-height:1.65!important;font-weight:600;color:#e8f5f7}
+.st-key-page_telemetry .st-key-capture_confirmation:has(input:focus-visible){outline:2px solid #00f2fe;outline-offset:3px}
+.st-key-page_telemetry .st-key-capture_confirmation:has(.capture-confirmation-required){border-color:#f97316;background:#ea580c14;box-shadow:0 0 18px #ea580c20}
+.st-key-page_telemetry .st-key-capture_confirmation:has(.capture-confirmation-required) [data-testid="stCheckbox"] p,.st-key-page_telemetry .capture-confirmation-required{color:#fb923c!important}
+.st-key-page_telemetry .st-key-capture_confirmation:has(.capture-confirmation-required) [data-testid="stCheckbox"] label>div:first-of-type{border-color:#f97316;background:#ea580c14}
+.st-key-page_telemetry .capture-confirmation-required{margin:8px 0 0;font-size:15px;line-height:1.6}
 @media(max-width:700px){
  body:has(.st-key-page_telemetry) .stMainBlockContainer{padding:168px 16px 28px!important;max-width:100%!important;min-width:0!important}
  .st-key-page_telemetry{min-width:0;max-width:100%}
@@ -33,4 +43,5 @@
  .st-key-page_telemetry [data-testid="stPlotlyChart"]{min-width:0;max-width:100%;overflow:hidden}
  .st-key-page_telemetry button{min-height:44px}
  .st-key-page_telemetry .st-key-beat_calculations{padding:16px}
+ .st-key-page_telemetry .st-key-capture_confirmation{padding:16px}
 }

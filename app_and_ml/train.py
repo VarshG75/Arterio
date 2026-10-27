@@ -45,7 +45,7 @@ def main():
     print(classification_report(y.iloc[test], predictions, labels=[0, 1, 2], zero_division=0))
     print('Macro F1:', f1_score(y.iloc[test], predictions, average='macro'))
     print('Confusion matrix:\n', confusion_matrix(y.iloc[test], predictions, labels=[0, 1, 2]))
-    # Exclusive creation protects existing artifacts from accidental overwrite.
+    # Refuse to overwrite an existing model file.
     with args.output.open('xb') as file:
         pickle.dump({'model': model, 'features': FEATURES, 'status': 'research only',
                      'train_subjects': sorted(map(str, frame.iloc[train]['subject_id'].unique())),

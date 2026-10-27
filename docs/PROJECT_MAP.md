@@ -6,6 +6,7 @@
 | `app_and_ml/views/navigation.py` | Page names and URL synchronization for refreshes |
 | `app_and_ml/styles.py` | Shared colors, navigation, uploads and warning styles |
 | `app_and_ml/views/capture.py` | Upload state, duration consent, height input and retake |
+| `app_and_ml/views/height.py` | Centimeter and feet/inches entry, conversion and input validation |
 | `app_and_ml/views/acquisition.py` | Shared recording protocol content |
 | `app_and_ml/views/telemetry.py` | Analysis workflow, decoding progress and measured results |
 | `app_and_ml/views/waveform.py` | Measured landmark plots and per-beat SI/RI explanation |
@@ -15,6 +16,7 @@
 | `app_and_ml/services/recordings.py` | Temporary-file lifecycle for local uploads |
 | `app_and_ml/signal_processing/capture_policy.py` | Shared capture limits and motion heuristic |
 | `app_and_ml/signal_processing/video_pipeline.py` | Bounded OpenCV decoding and quality gates |
+| `app_and_ml/signal_processing/stability.py` | Raw-signal artifact checks and continuous-window selection before filtering |
 | `app_and_ml/signal_processing/math_engine.py` | NumPy/SciPy array API, landmarks and self-check |
 | `app_and_ml/views/heart.py` | Local heart asset embedding |
 | `app_and_ml/assets/heart/` | Renderer, licensed geometry, mappings and references |

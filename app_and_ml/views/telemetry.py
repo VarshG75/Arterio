@@ -7,7 +7,7 @@ import streamlit as st
 
 from services.recordings import analyze_recording
 from views.capture import render_capture
-from views.waveform import overview_figure, render_beat_inspector
+from views.waveform import overview_figure, render_beat_inspector, capture_quality_figure
 
 STYLES = Path(__file__).resolve().parents[1] / 'assets/telemetry/telemetry.css'
 
@@ -73,12 +73,10 @@ def render_measurement_details(data, time_axis):
             rows = [{'Cycle': r['beat'] + 1,
                      'Time (s)': round(float(time_axis[r['reflection']]), 2) if r['reflection'] < len(time_axis) else None,
                      'Method': r['method'], 'Delay (ms)': round(r['delay'] * 1000),
-                     'SI (m/s)': round(r['si'], 2), 'RI (%)': round(r['ri'], 1),
-                     'Outside typical range': 'yes' if r.get('outside_reference_bounds') else ''}
+                     'SI (m/s)': round(r['si'], 2), 'RI (%)': round(r['ri'], 1)}
                     for r in records]
             st.dataframe(rows, hide_index=True, width='stretch')
-            st.caption('SI and RI on the cards are the medians of these per-cycle values. "Outside typical range" flags '
-                       'values outside 4–18 m/s or 20–98 %; it describes the measurement, not your health.')
+            st.caption('The SI and RI cards show the medians of these per-cycle values. No healthy or unhealthy range is assigned.')
         else:
             st.caption('No secondary landmarks were measured in this recording.')
 
@@ -91,6 +89,15 @@ def render_results(data):
     else:
         st.markdown('<div class="section-pill">● 20S+ RECORDING ACQUIRED // 200 HZ PROCESSING GRID</div>', unsafe_allow_html=True)
     render_notices(data)
+    if data.get('analysis_window'):
+        start, end = data['analysis_window']
+        st.caption(f"Using {start:.1f}–{end:.1f}s of the recording ({data['stable_duration']:.1f}s). "
+                   'Only this continuous section reaches the filter and measurement steps.')
+        with st.expander('See which part of the recording was used'):
+            st.plotly_chart(capture_quality_figure(data), width='stretch',
+                            config={'displaylogo': False, 'responsive': True})
+            st.caption('Cyan marks the selected section. Shaded grey intervals failed stability checks, including a 1-second margin. '
+                       'Other unselected sections and the initial/final trims are also left out. These checks cannot detect every recording problem.')
     time_axis = np.asarray(data['time_axis'])
     st.plotly_chart(overview_figure(data), width='stretch', key='telemetry_overview',
                     config={'displaylogo': False, 'responsive': True})
@@ -109,7 +116,7 @@ def render_results(data):
     render_beat_inspector(data)
     render_measurement_details(data, time_axis)
     with st.expander('Signal processing details'):
-        st.write(f"Start trim: 2.0s · End trim: 1.0s · Processed segment: {data['processed_duration']:.1f}s · Height: {data['height_m'] * 100:.0f} cm")
+        st.write(f"Initial trim: 2.0s · Final trim: 1.0s · Selected section: {data.get('stable_duration', data['usable_duration']):.1f}s · Height: {data['height_m'] * 100:.0f} cm")
         st.write('PCHIP at 200 Hz → fourth-order Butterworth prototype in SOS form → forward/backward filtering → Savitzky–Golay derivatives. The moving-average detrended trace is available separately; landmarks use the bandpassed contour to avoid treating detrending artifacts as peaks.')
         if data.get('interval_cv') is not None:
             st.caption(f"Pulse-interval coefficient of variation: {data['interval_cv']:.3f}; processing limit 0.200.")

@@ -15,7 +15,7 @@ def simulation():
 
 
 def render_cohort_view():
-    st.markdown('<div class="section-pill">02 / SIMULATED DATA STUDY</div><div class="hero-title">Explore the patterns.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-pill">02 / SIMULATED DATA STUDY</div><div class="hero-title">Explore sample data.</div>', unsafe_allow_html=True)
     st.write('Explore 800 simulated observations. Q is a dimensionless simulation variable, separate from Telemetry’s SI in m/s; these data are not patient records.')
     age_col, bin_col, mode_col = st.columns([1, 1, 1.4])
     with age_col:

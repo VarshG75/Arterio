@@ -9,7 +9,7 @@ STYLES = Path(__file__).resolve().parents[1] / 'assets/clinical/reading.css'
 
 def render_clinical_docs_view():
     st.html('<style>' + STYLES.read_text() + '</style>')
-    st.markdown('<div class="section-pill">03 / SCIENCE & METHODS</div><div class="hero-title">Behind the pulse.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-pill">03 / SCIENCE & METHODS</div><div class="hero-title">From video to pulse.</div>', unsafe_allow_html=True)
     st.html('''<p class="clinical-lead">From light at your fingertip to the shape of a pulse. Understand what we capture, how we process it, and what the measurements mean.</p>
 <ol class="clinical-flow" aria-label="From recording to interpretation">
 <li><span>01 / CAPTURE</span><h2>Light becomes data.</h2><p>A rear-camera recording with the video light ON captures changing brightness at the fingertip.</p></li>
@@ -30,7 +30,9 @@ def render_clinical_docs_view():
     st.write('Turn the rear flash/video light ON for the full recording—not Auto or Off. Record 20–25 seconds with light contact and the phone supported. Turn AE/AF lock ON, if supported, so brightness and focus stay fixed.')
     render_protocol()
     with st.expander('Why contact and camera settings matter'):
-        st.write('The first 2 seconds and final 1 second of the processed segment are removed. Under 12 seconds is rejected; 12 to under 20 seconds requires approval. Decoding uses a nominal 25-second frame-count cap. The accepted-beat count determines whether features can be reported.')
+        st.write('We remove the first 2 seconds and final 1 second. Stability checks then flag abrupt brightness changes, clipping, flat sections, high-frequency noise and timing gaps. Each flagged section gets a 1-second margin. The longest continuous section is selected before filtering; at least 8 seconds must remain. Separate sections are never joined. These thresholds are engineering choices and cannot identify every artifact.')
+        st.write('Uploads under 12 seconds are rejected; 12 to under 20 seconds require approval. Only the first 25 seconds are decoded. The beat-shape and timing checks still apply to the selected section, and measurements stay blank if they fail.')
+        st.markdown('Background on pulse-quality checks: [pulse morphology quality assessment](https://pubmed.ncbi.nlm.nih.gov/29059824/). That study supports checking waveform quality; it does not validate our thresholds or phone-camera implementation.')
         st.markdown('Contact-pressure evidence: [Teng & Zhang, 2004](https://doi.org/10.1088/0967-3334/25/5/020). Brightness is a recording-quality check; it does not measure pressure or identify capillary blanching.')
         st.markdown('Camera controls: [Apple — focus and exposure lock](https://support.apple.com/guide/iphone/use-camera-tools-iph3dc593597/ios). Other camera apps use different controls. The uploaded file cannot verify that the light or locks were enabled.')
 

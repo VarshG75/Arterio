@@ -38,7 +38,7 @@
  }
  function request(){if(frame===null)frame=scope.requestAnimationFrame(update);}
  scroll.addEventListener('scroll',request,{passive:true,signal:abort.signal});scope.addEventListener('resize',layout,{passive:true,signal:abort.signal});
- links.forEach(link=>link.addEventListener('click',event=>{event.preventDefault();const stage=stages[Number(link.dataset.stageLink)],offset=scope.innerWidth<1200?215:180;scroll.scrollTo({top:scroll.scrollTop+stage.getBoundingClientRect().top-scroll.getBoundingClientRect().top-offset,behavior:reduced.matches?'instant':'smooth'});},{signal:abort.signal}));
+ links.forEach(link=>link.addEventListener('click',event=>{event.preventDefault();const stage=stages[Number(link.dataset.stageLink)],nav=root.querySelector('.dossier-stage-nav');const offset=parseFloat(scope.getComputedStyle(nav).top)+nav.getBoundingClientRect().height+24;scroll.scrollTo({top:scroll.scrollTop+stage.getBoundingClientRect().top-scroll.getBoundingClientRect().top-offset,behavior:reduced.matches?'instant':'smooth'});},{signal:abort.signal}));
  const resize=new ResizeObserver(layout);stages.forEach(s=>resize.observe(s));
  function cleanup(){abort.abort();resize.disconnect();observer.disconnect();if(frame!==null)scope.cancelAnimationFrame(frame);}
  const observer=new MutationObserver(()=>{if(!root.isConnected)cleanup();});observer.observe(host.body,{childList:true,subtree:true});window.addEventListener('pagehide',cleanup,{once:true});

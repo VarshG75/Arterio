@@ -33,7 +33,7 @@ def _rate(fs):
     return fs
 
 
-def clamp_and_validate_buffer(raw_frames, original_fps):
+def clamp_and_validate_buffer(raw_frames, original_fps, *, check_quality=True):
     """Keep at most 25 seconds, then remove 2 seconds at entry and 1 at exit."""
     values = _values(raw_frames)
     try:
@@ -51,13 +51,13 @@ def clamp_and_validate_buffer(raw_frames, original_fps):
     last = len(values) - int(np.ceil(RELEASE_SECONDS * fps))
     values = _values(values[first:last])
     mean_red = float(values.mean())
-    if mean_red > RED_MAX:
+    if check_quality and mean_red > RED_MAX:
         raise ValueError(f'OVEREXPOSED RECORDING: Mean red intensity {mean_red:.1f} > 250. '
                          'Use light finger contact and check the camera exposure. Brightness alone cannot identify the cause.')
-    if mean_red < RED_MIN:
+    if check_quality and mean_red < RED_MIN:
         raise ValueError(f'INADEQUATE ILLUMINATION: Mean red intensity {mean_red:.1f} < 30. '
                          'Check that the light is enabled and the finger pad covers the lens and light.')
-    if np.ptp(values) < .2:
+    if check_quality and np.ptp(values) < .2:
         raise ValueError('Signal too weak: no usable brightness variation. Re-record with steady, light contact.')
     metadata = dict(recorded_duration=duration, processed_duration=processed_duration,
                     usable_duration=len(values) / fps, is_short_duration=duration < RECOMMENDED_DURATION,
@@ -208,8 +208,7 @@ def extract_hemodynamic_indices(clean_wave, vpg, apg, peaks, feet, fs=TARGET_FS,
             b_idx = a_idx + 1 + int(np.argmin(apg[a_idx + 1:b_stop]))
             if apg[b_idx] < 0:
                 ba = float(apg[b_idx] / apg[a_idx])
-        records.append(dict(beat=i, reflection=reflection, method=method, si=si, ri=ri, delay=delay, ba_ratio=ba,
-                            outside_reference_bounds=not (4 <= si <= 18 and 20 <= ri <= 98)))
+        records.append(dict(beat=i, reflection=reflection, method=method, si=si, ri=ri, delay=delay, ba_ratio=ba))
     enough = len(valid) >= 4 and len(records) >= 4
     def median(key):
         values = [r[key] for r in records if r[key] is not None]
@@ -267,8 +266,19 @@ def process_trimmed_signal(values, fps, height_m=1.75, source_times=None):
 def compute_full_telemetry(raw_signal, original_fps, height_m=1.75):
     """Run the array API. The video API separately enforces short-clip consent."""
     start = perf_counter()
-    values, fps, metadata = clamp_and_validate_buffer(raw_signal, original_fps)
-    telemetry = process_trimmed_signal(values, fps, height_m)
+    try:
+        from .stability import select_stable_window
+    except ImportError:
+        from stability import select_stable_window
+    values, fps, metadata = clamp_and_validate_buffer(raw_signal, original_fps, check_quality=False)
+    section, stability = select_stable_window(values, fps)
+    telemetry = process_trimmed_signal(values[section], fps, height_m)
+    trim_offset = float(np.ceil(SETTLING_SECONDS * fps) / fps)
+    telemetry['time_axis'] += trim_offset + section.start / fps
+    stability['analysis_window'] = [value + trim_offset for value in stability['analysis_window']]
+    stability['excluded_intervals'] = [[a + trim_offset, b + trim_offset]
+                                       for a, b in stability['excluded_intervals']]
+    metadata.update(stability, mean_red=float(values[section].mean()))
     telemetry.update(metadata, latency_ms=(perf_counter() - start) * 1000)
     return telemetry
 

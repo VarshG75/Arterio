@@ -49,11 +49,13 @@ class TeamIntegrationTests(unittest.TestCase):
             def get(self, key): return [0, 1000 / 30, 10_000_000][self.index - 1]
             def release(self): self.released = True
         decoder = Decoder()
+        metadata = {'fps': 30}
         with patch('signal_processing.video_pipeline.cv2.VideoCapture', return_value=decoder):
-            times, values = extract_red_signal('unused.avi', {'fps': 30})
+            times, values = extract_red_signal('unused.avi', metadata)
         np.testing.assert_allclose(times, np.arange(3) / 30)
         self.assertTrue(decoder.released)
         self.assertEqual(len(values), 3)
+        self.assertTrue(metadata['timestamp_fallback'])
 
     def test_resampling_rejects_unbounded_time_grids(self):
         for kwargs in [dict(target_fs=1e20), dict(source_times=[0, .03, 10000])]:

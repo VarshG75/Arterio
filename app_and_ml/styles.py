@@ -52,7 +52,7 @@ def inject_editorial_theme():
             animation: viewFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
-        /* Floating Navigation Header */
+        /* Fixed navigation */
         .nav-bar-container {
             display: flex;
             align-items: center;
@@ -301,7 +301,7 @@ def inject_editorial_theme():
             transform: translateY(0) scale(0.99) !important;
         }
 
-        /* Bento Telemetry Cards */
+        /* Measurement cards */
         .bento-card {
             background: linear-gradient(180deg, rgba(12, 12, 18, 0.7) 0%, rgba(6, 6, 10, 0.85) 100%);
             border: 1px solid rgba(255, 255, 255, 0.07);

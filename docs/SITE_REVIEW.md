@@ -25,6 +25,6 @@ Reviewed the five page routes in desktop Chrome at the user's existing 110% zoom
 - Removed the requested Implementation Notes footer, external links and its variable-definition sentence from Architecture.
 - Corrected the displayed Butterworth call, nominal decoding-cap description, derivative-window wording and candidate acceptance explanation.
 - Audited each numeric/algorithmic claim against code, tests, arithmetic or primary documentation: [Architecture evidence](ARCHITECTURE_EVIDENCE.md).
-- Replaced the short benchmark fixture, which did not reach the SI/RI reporting threshold, with a complete reporting-path fixture. Published measured P95 is 1.70 ms, with input, environment, exclusions, raw timings and source hashes recorded.
+- Replaced the short benchmark fixture, which did not reach the SI/RI reporting threshold, with a complete reporting-path fixture. The refreshed measured P95 is 1.52 ms, with input, environment, exclusions, raw timings and source hashes recorded. Stability selection is outside this signal-only benchmark.
 - Follow-up: added real frame-decode progress and elapsed time, an annotated waveform and selectable beat inspector with sample-derived SI/RI formulas, and a Clinical Docs reading layout. Items 2, 3 and 5 above describe the original findings now addressed.
 - Made flash ON a prominent required capture instruction and explained AE/AF lock ON. Telemetry controls/plots adapt to phones; the shared navigation adapts across all pages. The signal-processing algorithms remain unchanged.

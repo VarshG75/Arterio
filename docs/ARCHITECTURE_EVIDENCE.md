@@ -12,7 +12,7 @@ The Architecture page describes implemented software and local measurements. The
 | Use a local temporary file | `services/recordings.py`: `recording_path` writes upload bytes and unlinks the file in `finally` | The browser upload and decoder buffers still consume memory. |
 | Full-frame mean red intensity | `video_pipeline.py`: `mean_red_channel` uses `cv2.sumElems(frame)[2] / (height × width)`; structured-pixel and uniform-frame tests | No sparse regular-grid pixel sampling. Complexity of this reduction is O(F × H × W), excluding codec-dependent decoding work. |
 | About 6.22 MB per decoded 1080p BGR frame | `1920 × 1080 × 3 = 6,220,800` bytes for an 8-bit three-channel frame | Decimal MB for the raw pixel payload only, not process peak memory. |
-| Accept mean red 30–250; warn above 4× variance ratio | `clamp_and_validate_buffer`; `capture_policy.py`: `motion_quality`; brightness/flat-signal and local-spike tests | Motion uses overlapping half-second windows of frame differences, median variance and a `1e-6` floor. This is neither pressure sensing nor a calibrated SNR test. |
+| Retain frame means within 30–250; select at least 8 continuous seconds before filtering | `stability.py`: `select_stable_window`; clean, late-settling, step, spike, clipping, noise and timestamp-gap tests | Per-frame brightness and raw-signal checks reject intervals with a 1-second margin. Only the longest continuous section is filtered; sections are never joined. Thresholds and limits are recorded in [signal quality](SIGNAL_QUALITY.md). |
 | 30/60 FPS recording guidance and frame-clock fallback | Metadata handling and nominal-frame fallback in `video_metadata` / `extract_red_signal`; malformed timestamp test; generated 30 FPS video tests and 60 Hz array tests | No claim that every phone, codec or variable-frame-rate recording was verified. Missing FPS uses 30 FPS and displays a warning. |
 | PCHIP resampling at 200 Hz; 5 ms grid; C¹ continuity | `math_engine.py`: `resample_signal`; interpolation/input-validation tests; [SciPy PCHIP](https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.PchipInterpolator.html) | Interpolation adds grid locations, not captured temporal detail. Second derivatives may jump at knots. |
 | Finite increasing timestamps; reject excessive interpolation grids | `resample_signal` validates order, matching lengths and maximum grid size of 200,000 points; duplicate-time and unbounded-grid tests | Local PCHIP slope construction takes O(N) work. This bound describes construction, not the complete analysis. |
@@ -36,7 +36,7 @@ The earlier fixture contained 1,000 points at 200 Hz: about five seconds. It rea
 
 The current fixture contains **1,000 already-trimmed generated input points at 60 Hz**, resampled to **3,330 points at 200 Hz**. It completes with status `OK`, 15 accepted segments and 15 secondary candidates. These are generated fixture results, not patient outcomes or counts from the CSV dataset.
 
-On this Mac, after 20 warm-up executions, 200 timed executions measured **1.446 ms median / 1.698 ms P95**. The published card rounds P95 to **1.70 ms**. The JSON records every duration, the UTC timestamp, Python/NumPy/SciPy versions, OS/machine details, fixture parameters, result status and SHA-256 hashes of processing code and the benchmark script.
+On this Mac, after 20 warm-up executions, 200 timed executions measured **1.413 ms median / 1.520 ms P95**. The published card rounds P95 to **1.52 ms**. This refreshed run matches the final processing source hashes. The JSON records every duration, the UTC timestamp, Python/NumPy/SciPy versions, OS/machine details, fixture parameters, result status and SHA-256 hashes of processing code and the benchmark script.
 
 Reproduce locally:
 
@@ -45,11 +45,13 @@ Reproduce locally:
 .venv/bin/python -m unittest discover -s tests -q
 ```
 
-The benchmark includes PCHIP, filter design/execution, detrending, cycle/foot detection, derivatives, template comparison, ratios and interval checks. It excludes upload handling, video decoding, capture gates, trimming and rendering. Timing changes with machine load and software; regenerating it replaces the checked-in measurement. Source-hash checks fail if the measured code changes without a refreshed benchmark.
+The benchmark includes PCHIP, filter design/execution, detrending, cycle/foot detection, derivatives, template comparison, ratios and interval checks. It excludes upload handling, video decoding, capture gates, stability selection, trimming and rendering. Timing changes with machine load and software; regenerating it replaces the checked-in measurement. Source-hash checks fail if the measured code changes without a refreshed benchmark.
 
 ## Removed from the page
 
 The Implementation Notes footer, its two external links and the variable-definition sentence were removed as requested. Primary source links remain in this evidence record and Clinical Docs. Relevant symbols are defined within the stage details where needed.
+
+Final audit: the page documents the current pre-filter stability selection, brightness limits, 1-second exclusion margins, 8-second continuous minimum, height units and unchanged DSP/landmark formulas. The benchmark footer explicitly excludes stability selection. The 200 Hz card is labeled resampling rate; C¹ continuity is described separately. The 100 Hz Nyquist value refers to the processing grid, not captured camera bandwidth.
 
 ## Evidence still needed
 

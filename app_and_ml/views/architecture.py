@@ -1,4 +1,4 @@
-"""Scroll-led systems engineering dossier grounded in the running pipeline."""
+"""Explain the processing steps beside the scrolling flowchart."""
 import html
 import base64
 import json
@@ -8,15 +8,15 @@ import streamlit as st
 ASSETS = Path(__file__).resolve().parents[1] / 'assets/architecture'
 
 STAGES = [
-    dict(key='capture', name='Capture', title='Light becomes a signal.', subtitle='Optical ingestion & quality checks',
-         description='An original camera recording becomes a bounded sequence of brightness samples. Quality checks begin before waveform analysis.',
+    dict(key='capture', name='Capture', title='Light becomes a signal.', subtitle='Video capture & stability checks',
+         description='We measure brightness in each frame, leave out unstable sections and choose one continuous section for analysis.',
          metric='20–25 s', unit='recommended recording',
-         context='Sit with your arms supported on a stable surface. Use light finger contact, comfortably warm hands and fixed exposure/focus where supported. Prefer 1080p or 720p at 60 FPS; 30 FPS is supported.',
+         context='Rest the phone and hand on a table. Keep the rear video light ON throughout, use light finger contact and turn AE/AF lock ON if supported. Prefer 1080p or 720p at 60 FPS; 30 FPS is supported.',
          equations='duration ≈ frame_count / FPS\n12 s ≤ duration < 20 s → explicit approval\ndecoded frames ≤ floor(25 · FPS)\ns[k] = Σᵢ Σⱼ Iᵣ(i,j,k) / (H · W)',
-         explanation='A temporary file supplies OpenCV with the local upload. OpenCV sums the full frame to retain the spatial red mean without sparse-grid sampling bias. The frame-count cap is based on nominal FPS; it is not a wall-clock execution limit. The first 2 seconds and last 1 second of the decoded segment are trimmed on that nominal frame clock before brightness and motion checks.',
-         bounds='O(F · H · W) full-frame reduction\n6.22 MB pixel payload / 1080p BGR frame\n30 ≤ mean red ≤ 250\nDifference-variance ratio > 4 → warning',
-         detail='F is decoded frames; H and W are image height and width. Under 12 seconds is rejected. Upload bytes and decoder buffers add to memory use. The motion heuristic compares overlapping half-second windows of frame differences against their median variance, with a small numerical floor. Neither check measures pressure, blanching or calibrated SNR.',
-         tags=['20 seconds+ guidance', '2 s start / 1 s end trim', 'Nominal 25 s frame cap']),
+         explanation='OpenCV reads the upload from a temporary file and computes each full-frame red mean. After a 2-second initial trim and 1-second final trim, stability checks flag brightness outside the configured limits, jumps, uneven frame changes, flat sections, high-frequency noise and timestamp gaps. We add a 1-second margin around flagged sections, then keep the longest continuous section. Filtering happens afterward, so discarded values do not enter the filter.',
+         bounds='O(F · H · W) full-frame reduction\n6.22 MB pixel payload / 1080p BGR frame\n30 ≤ retained frame red mean ≤ 250\n≥8 s continuous section before filtering',
+         detail='F is decoded frames; H and W are image height and width. Uploads under 12 seconds are rejected. The 25-second frame cap uses nominal FPS. Upload bytes and decoder buffers add to memory use. The recording timeline shows the selected section; disjoint sections are never joined. Stability thresholds are engineering choices, not measurements of pressure, motion or clinical confidence.',
+         tags=['Video light ON', 'Stability before filtering', 'One continuous section']),
     dict(key='resample', name='Resample', title='Give time a common grid.', subtitle='Shape-preserving PCHIP interpolation',
          description='Camera samples move onto a uniform 200 Hz grid. The interpolation preserves local shape without creating new captured detail.',
          metric='200 Hz', unit='uniform processing grid',
@@ -32,7 +32,7 @@ STAGES = [
          context='The chosen band attenuates slower drift and higher-frequency noise. Movement and exposure artifacts can overlap the pulse band, so filtering alone cannot establish quality.',
          equations="SOS = butter(4, [0.5, 8.5],\n  btype='bandpass', fs=200, output='sos')\ny = sosfiltfilt(SOS, x − mean(x),\n  padtype='odd', padlen=min(600, M − 1))\nVPG, APG = Savitzky–Golay derivatives\nwindow = 15 samples; polynomial = 2",
          explanation='A fourth-order prototype becomes an eighth-order one-pass bandpass. Forward/backward execution has zero phase shift and squares the magnitude response; the cutoff frequencies are the one-pass −3 dB points. Edge effects remain possible. A 0.35-second moving-mean detrended trace is also computed; segmentation uses the bandpassed contour.',
-         bounds='O(M) filtering at fixed order\nPadding ≤ 3 seconds per side\n100 Hz Nyquist at 200 Hz sampling\n15-point derivative fit; 5 ms spacing',
+         bounds='O(M) filtering at fixed order\nPadding ≤ 3 seconds per side\n100 Hz processing-grid Nyquist\n15-point derivative fit; 5 ms spacing',
          detail='Zero phase shift is different from wall-clock execution time. Derivative smoothing and detrending change morphology and need evaluation against reference recordings.',
          tags=['Second-order sections', 'Forward + backward', 'Savitzky–Golay derivatives']),
     dict(key='kinetics', name='Kinetics', title='From peaks to relationships.', subtitle='Repeatable beats & secondary landmarks',
@@ -42,7 +42,7 @@ STAGES = [
          equations='SI = height / Δt  [m/s]\nRI = 100 · (Asecondary − Afoot) / (Asys − Afoot)\nAPG ≈ d²PPGfiltered / dt²\n0.10 · Tcycle ≤ Δt < 0.55 · Tcycle',
          explanation='Search for a distinct secondary maximum, then a descending-slope VPG shoulder candidate if needed. The window also ends before the next pulse foot, and delays below 50 ms are rejected. At least four repeatable segments and four secondary candidates are needed for median SI and RI.',
          bounds='0.80 template-correlation threshold\n≥4 retained secondary candidates\nΔt ≥50 ms; amplitudes relative to foot\nO(M²) worst-case peak prominence search',
-         detail='Height is entered by the user. SI is a height/delay descriptor, not measured pulse wave velocity. Candidates require 0 < RI < 100%; unsupported values are withheld rather than clipped. Search bounds and template thresholds are engineering choices; they do not prove a feature is a reflected wave. No disease tiers or vascular age are assigned.',
+         detail='Height is entered in centimeters or feet and inches, then converted to meters. SI is a height/delay descriptor, not measured pulse wave velocity. Candidates require 0 < RI < 100%; unsupported values are withheld rather than clipped. Search bounds and template thresholds are engineering choices; they do not prove a feature is a reflected wave. No disease tiers or vascular age are assigned.',
          tags=['Foot-referenced amplitudes', 'Median beat template', 'Missing-value handling']),
 ]
 
@@ -81,7 +81,11 @@ def render_architecture_view():
     content=f'''<main class="arterio-dossier"><header class="dossier-intro"><p class="dossier-eyebrow">04 / SYSTEM ARCHITECTURE</p><h1>Follow the signal.<br><em>Understand every step.</em></h1><p>From the first frame to the shape of a pulse. Explore the acquisition, mathematics and numerical decisions behind ARTERIO.</p><div class="dossier-scroll-cue"><span>↓</span> SCROLL TO TRACE THE PIPELINE</div></header>
 <nav class="dossier-stage-nav" aria-label="Processing stages">{links}</nav>
 <div class="dossier-story"><div class="dossier-connections" aria-hidden="true"></div>{''.join(sections)}</div>
-<footer class="dossier-summary"><p class="dossier-eyebrow">EXECUTION / AT A GLANCE</p><div class="dossier-summary-grid"><article><h3>Signal processing · P95</h3><strong>{latency}</strong><p>{bench['samples']:,} source samples · {bench['source_rate_hz']} Hz → {bench['sample_rate_hz']} Hz</p><small>Median {bench['median_ms']:.3f} ms · P95 {bench['p95_ms']:.3f} ms · {bench['runs']} runs<br>{bench['platform']} / {bench['machine']} · Python {bench['python']}</small></article><article><h3>Resampling continuity</h3><strong>200 Hz</strong><p>C¹ shape-preserving PCHIP interpolant</p><small>Uniform 5.0 ms processing grid</small></article><article><h3>Landmark search window</h3><strong>10%–55%</strong><p>Bounded secondary-peak search</p><small>Fraction of each detected cardiac cycle</small></article></div><p class="dossier-method">Benchmark scope: PCHIP resampling, SOS filter design and execution, detrending, segmentation, template comparison, ratios and smoothed derivatives. {bench['samples']:,} already-trimmed generated samples become {bench['output_samples']:,} processing samples; {bench['warmup_runs']} warm-up runs precede {bench['runs']} timed runs. Measured {bench['generated_at_utc'][:10]} UTC. Upload handling, video decoding, capture gates, trimming and rendering are excluded. This is a local software measurement, not a device or clinical-performance guarantee.</p></footer></main>'''
+<footer class="dossier-summary"><p class="dossier-eyebrow">EXECUTION / AT A GLANCE</p><div class="dossier-summary-grid">
+<article><h3>Signal processing · P95</h3><strong>{latency}</strong><p>{bench['samples']:,} source samples · {bench['source_rate_hz']} Hz → {bench['sample_rate_hz']} Hz</p><small>Median {bench['median_ms']:.3f} ms · P95 {bench['p95_ms']:.3f} ms · {bench['runs']} runs<br>{bench['platform']} / {bench['machine']} · Python {bench['python']}</small></article>
+<article><h3>Resampling rate</h3><strong>200 Hz</strong><p>C¹ shape-preserving PCHIP interpolant</p><small>Uniform 5.0 ms processing grid</small></article>
+<article><h3>Landmark search window</h3><strong>10%–55%</strong><p>Bounded secondary-peak search</p><small>Fraction of each detected cardiac cycle</small></article></div>
+<p class="dossier-method">Benchmark scope: PCHIP resampling, SOS filter design and execution, detrending, segmentation, template comparison, ratios and smoothed derivatives. {bench['samples']:,} already-trimmed generated samples become {bench['output_samples']:,} processing samples; {bench['warmup_runs']} warm-up runs precede {bench['runs']} timed runs. Measured {bench['generated_at_utc'][:10]} UTC. Upload handling, video decoding, capture checks, stability selection, trimming and rendering are excluded. This is a local software measurement, not a device or clinical-performance guarantee.</p></footer></main>'''
     st.html('<style>'+(ASSETS / 'dossier.css').read_text()+'</style>'+content)
     with st.container(key='architecture_motion'):
         st.iframe((ASSETS / 'motion.html').read_text(),height=1,tab_index=-1)

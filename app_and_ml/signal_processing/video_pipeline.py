@@ -5,6 +5,7 @@ import numpy as np
 from .capture_policy import (TARGET_FS, MAX_DURATION, SETTLING_SECONDS, RELEASE_SECONDS,
                              duration_gate, duration_error)
 from .math_engine import clamp_and_validate_buffer, process_trimmed_signal, resample_signal
+from .stability import select_stable_window
 
 
 def video_metadata(filepath):
@@ -54,9 +55,10 @@ def extract_red_signal(filepath, metadata=None, *, progress=None):
         if len(reds) < 2:
             raise ValueError('No usable video frames. Try an original H.264 MP4.')
         gaps = np.diff(times)
-        if (not np.isfinite(times).all() or np.any(gaps <= 0)
-                or np.any(gaps > max(.5, 5 / fps))
-                or times[-1] - times[0] > MAX_DURATION + 1):
+        metadata['timestamp_fallback'] = bool(not np.isfinite(times).all() or np.any(gaps <= 0)
+                                              or np.any(gaps > max(.5, 5 / fps))
+                                              or times[-1] - times[0] > MAX_DURATION + 1)
+        if metadata['timestamp_fallback']:
             times = np.arange(len(reds)) / fps
         return times - times[0], reds
     finally:
@@ -67,16 +69,11 @@ def resample_uniform(times, values, target_fs=TARGET_FS):
     return resample_signal(values, TARGET_FS, target_fs, source_times=times)[1]
 
 
-REQUIRED_BEATS = 4  # matches the four-beat minimum in math_engine.extract_hemodynamic_indices
+REQUIRED_BEATS = 4  # Keep this in step with the math engine's reporting minimum.
 
 
 def build_feedback(processed, quality):
-    """Turn the pipeline's quality results into specific, user-facing notices.
-
-    Each notice separates what the software confirmed from possible causes, says
-    which measurements remain available, and suggests what to change next time.
-    Returns (notices, missing_reasons).
-    """
+    """Explain the quality checks and why any measurements are missing."""
     notices, missing = [], {}
 
     def add(level, title, body, next_step=''):
@@ -91,45 +88,52 @@ def build_feedback(processed, quality):
         else:
             detail = 'The detected pulse rate fell outside the supported 40–160 BPM range.'
         add('error', 'Pulse timing inconsistent',
-            f'Confirmed: {detail} Pulse rate, SI and RI are withheld because they would not be reliable.',
+            f'{detail} Pulse rate, SI and RI are withheld because the timing check failed.',
             'Possible causes: movement, changing fingertip pressure or camera exposure changes. Support your arm, keep light, '
             'steady contact and record again. This check is not designed to detect heart-rhythm problems.')
         reason = 'Pulse timing did not pass the consistency check.'
         missing = dict(pulse=reason, si=reason, ri=reason)
     elif accepted < REQUIRED_BEATS:
         add('error', 'Insufficient consistent pulse cycles',
-            'Confirmed: Not enough repeatable pulse waveforms were identified to calculate the requested measurements '
-            f'reliably ({accepted} found, {REQUIRED_BEATS} needed). Pulse rate is still shown; SI and RI are unavailable.',
+            f'{accepted} repeatable pulse cycles were found; {REQUIRED_BEATS} are needed. '
+            'Pulse rate is still shown; SI and RI are unavailable.',
             'Possible causes: movement or uneven contact changed the pulse shape from beat to beat. '
             'Keep your fingertip still with light, steady pressure.')
         reason = f'Only {accepted} repeatable pulse cycles were found ({REQUIRED_BEATS} needed).'
         missing = dict(si=reason, ri=reason)
     elif processed['status'] != 'OK':
         add('error', 'Secondary waveform feature unavailable',
-            'Confirmed: A repeatable secondary waveform landmark could not be identified '
+            'Too few repeatable secondary waveform landmarks were found '
             f'(measured in {landmarks} of {accepted} accepted cycles; {REQUIRED_BEATS} needed). '
-            'SI and RI cannot be calculated reliably from this recording. Pulse rate is still shown.',
+            'SI and RI are withheld. Pulse rate is still shown.',
             'Possible causes: pressing too firmly can flatten the pulse shape, and some waveforms naturally show a weak '
             'secondary feature. Try lighter contact and a warm hand. A missing landmark is not a sign of disease.')
         reason = f'A secondary landmark was measured in only {landmarks} cycles ({REQUIRED_BEATS} needed).'
         missing = dict(si=reason, ri=reason)
     if quality.get('motion_warning'):
-        passed = processed['status'] == 'OK'
-        add('info' if passed else 'warning', 'Signal instability detected',
-            'The optical signal contains abrupt changes that may result from movement, fingertip contact, or camera '
-            'exposure adjustments.' + (' The measurements shown still passed every quality check.' if passed else ''),
-            'Support your arm, keep light, steady contact, and lock exposure if your camera allows it.')
+        add('info', 'Unstable sections left out',
+            'Some recording sections failed brightness or stability checks. Analysis uses only the longest section that passed the '
+            'stability checks; the recording timeline shows the selected interval.',
+            'Support your arm, use light contact and keep AE/AF lock ON if supported.')
+    if quality.get('excluded_duration', 0) > 0:
+        add('info', 'Selected recording section',
+            f"{quality['stable_duration']:.1f}s was kept for analysis. Other sections were left out; separate sections are never joined.")
     if processed['status'] == 'OK' and accepted < 10:
         add('info', 'Short sample',
-            f'Confirmed: {accepted} repeatable pulse cycles were used. Measurements are available, but they rest on fewer cycles.',
+            f'{accepted} repeatable pulse cycles were used. A longer stable section would provide more cycles.',
             'A steady 20–25 second recording usually gives more cycles.')
     if quality.get('was_clamped'):
         add('info', 'Long recording',
-            'Confirmed: Only the first 25 seconds were decoded; the 2-second start and 1-second end trims apply to that segment.')
+            'Only the first 25 seconds were decoded. Initial and final trims and stability checks apply within that segment.')
     if quality.get('fps_fallback'):
         add('warning', 'Frame rate missing',
-            'Confirmed: The video did not report its frame rate, so 30 FPS was assumed. Timing-based values may be inaccurate.',
+            'The video did not report its frame rate, so 30 FPS was assumed. Timing-based values may be inaccurate.',
             'Upload the original camera file rather than an edited or exported copy.')
+    if quality.get('timestamp_fallback'):
+        add('warning', 'Video timestamps replaced',
+            'The decoder returned unusable timestamps, so timing uses frame count and the reported FPS. '
+            'Variable frame timing cannot be recovered from that clock.',
+            'Use the original camera file and check the recording settings.')
     return notices, missing
 
 
@@ -163,23 +167,28 @@ def analyze_live_video(filepath, *, allow_short=False, height_m=1.75, progress=N
             result.update(quality='hold', recorded_duration=actual_duration, is_short_duration=True,
                           message='Decoded footage is shorter than its metadata. Please confirm the reduced window or replace the clip.')
             return result
-        values, fps, quality = clamp_and_validate_buffer(reds, metadata['fps'])
+        values, fps, quality = clamp_and_validate_buffer(reds, metadata['fps'], check_quality=False)
         first = int(np.ceil(SETTLING_SECONDS * fps))
         last = len(reds) - int(np.ceil(RELEASE_SECONDS * fps))
+        retained_times = times[first:last]
+        section, stability = select_stable_window(values, fps, retained_times)
+        quality.update(stability, mean_red=float(values[section].mean()))
         if progress:
             progress(.88, 'Analyzing waveform · filtering and locating pulse landmarks')
-        processed = process_trimmed_signal(values, fps, height_m, times[first:last])
+        processed = process_trimmed_signal(values[section], fps, height_m, retained_times[section])
         if progress:
             progress(.96, 'Preparing waveform and measurement results')
         quality.update(recorded_duration=actual_duration, is_short_duration=actual_duration < 20,
-                       was_clamped=duration > MAX_DURATION, fps_fallback=metadata['fps_fallback'])
-        offset = float(times[first])
+                       was_clamped=duration > MAX_DURATION, fps_fallback=metadata['fps_fallback'],
+                       timestamp_fallback=metadata.get('timestamp_fallback', False))
+        offset = float(retained_times[section.start])
         notices, missing = build_feedback(processed, quality)
         warnings = [f"{n['title'].upper()}: {n['body']}" for n in notices]
         errors = [n['body'] for n in notices if n['level'] == 'error']
         result.update(quality, heart_rate_bpm=processed['bpm'], stiffness_index=processed['si'],
                       reflection_index=processed['ri'], ba_ratio=processed['ba_ratio'], sqi_score=processed['sqi_score'],
                       clean_wave_array=processed['clean_signal'].tolist(), raw_wave_array=processed['raw_signal'].tolist(),
+                      capture_time_axis=times.tolist(), capture_red_values=reds.tolist(),
                       time_axis=(processed['time_axis'] + offset).tolist(), time_offset_s=offset,
                       beat_indices=processed['peaks'].tolist(),
                       feet_indices=processed['feet'].tolist(), vpg_array=processed['vpg'].tolist(), apg_array=processed['apg'].tolist(),

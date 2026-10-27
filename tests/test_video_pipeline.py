@@ -9,7 +9,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'app_and_ml'))
 from signal_processing.video_pipeline import analyze_live_video
-from signal_processing.math_engine import resample_signal, compute_apg_derivatives
+from signal_processing.math_engine import resample_signal, compute_apg_derivatives, make_test_beat_wave
 
 
 class VideoPipelineTests(unittest.TestCase):
@@ -94,6 +94,31 @@ class VideoPipelineTests(unittest.TestCase):
             result = analyze_live_video(path, progress=lambda value, message: events.append((value, message)))
             self.assertEqual(result['quality'], 'error')
             self.assertLess(max(value for value, _ in events), 1)
+
+    def test_late_settling_is_excluded_before_video_measurements(self):
+        with tempfile.TemporaryDirectory() as directory:
+            pulse = 170 + 45 * make_test_beat_wave(30, 25, 72, .22 / (60 / 72), .65)
+            def intensity(time):
+                if 2 <= time < 6:
+                    return 180 + 45 * np.sin(2 * np.pi * 12 * time)
+                return pulse[min(len(pulse) - 1, round(time * 30))]
+            result = analyze_live_video(self.video(directory, 'late_settling', 25, intensity))
+            self.assertEqual(result['quality'], 'good', result['message'])
+            self.assertGreater(result['analysis_window'][0], 6)
+            self.assertAlmostEqual(result['time_axis'][0], result['analysis_window'][0])
+            self.assertLessEqual(result['time_axis'][-1], result['analysis_window'][1])
+            self.assertAlmostEqual(result['stiffness_index'], 1.75 / .22, delta=1)
+            self.assertGreater(len(result['capture_time_axis']), len(result['raw_wave_array']) / 200 * 30)
+
+    def test_noise_throughout_does_not_report_a_pulse_or_indices(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self.video(directory, 'all_noise', 20, lambda t: 170 + 40 * np.sin(2 * np.pi * 12 * t))
+            result = analyze_live_video(path)
+            self.assertEqual(result['quality'], 'error')
+            self.assertIn('stable section', result['message'])
+            self.assertIsNone(result['heart_rate_bpm'])
+            self.assertIsNone(result['stiffness_index'])
+            self.assertIsNone(result['reflection_index'])
 
 
 if __name__ == '__main__':

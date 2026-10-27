@@ -1,6 +1,6 @@
 # Anatomical reference assets
 
-Downloaded October 25, 2026. Both SVG files are included unchanged for offline study; no external image hosting is needed. They are labeled cross-sectional diagrams, not rotatable 3D meshes and not original chat uploads. Their instructional red/blue colors do not change the application's palette.
+Downloaded October 25, 2026. The source SVG files are unchanged. The website displays them with a CSS grayscale filter. Both are labeled cross-sectional diagrams.
 
 ## heart-diagram-en.svg
 Heart diagram-en.svg by ZooFari, March 2010. CC BY-SA 3.0 Unported.
@@ -14,4 +14,6 @@ Source: https://commons.wikimedia.org/wiki/File:Diagram_of_the_human_heart.svg
 Original: https://upload.wikimedia.org/wikipedia/commons/f/fa/Diagram_of_the_human_heart.svg
 License: https://creativecommons.org/licenses/by-sa/3.0/
 
-Give appropriate credit, link the license and indicate changes when reusing these assets. Adaptations must use the same or a compatible license. No changes were made to the included SVGs. These notices do not license the application code.
+Give appropriate credit, link the license and indicate changes when reusing these assets. The grayscale display adaptations are offered under CC BY-SA 3.0, the same license as the diagrams. The underlying SVG files remain unchanged. These notices apply to the diagrams and their display adaptations, separately from the application code.
+
+Source author and license pages were rechecked October 26, 2026. The visible reference dialog retains titles, authors, source links, license links and the grayscale change notice.

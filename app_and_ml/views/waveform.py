@@ -63,6 +63,19 @@ def overview_figure(data):
     return _style(figure)
 
 
+def capture_quality_figure(data):
+    """Keep the original recording clock visible around the selected section."""
+    figure = go.Figure(go.Scatter(x=data['capture_time_axis'], y=data['capture_red_values'],
+                                 mode='lines', name='Recorded brightness', line=dict(color='#a4adb5', width=1)))
+    for start, end in data.get('excluded_intervals', []):
+        figure.add_vrect(x0=start, x1=end, fillcolor='#a4adb5', opacity=.18, line_width=0)
+    start, end = data['analysis_window']
+    figure.add_vrect(x0=start, x1=end, fillcolor=CYAN, opacity=.12, line_width=1, line_color=CYAN)
+    _style(figure, height=290)
+    figure.update_layout(showlegend=False, xaxis_title='Recording time (seconds)', yaxis_title='Mean red brightness')
+    return figure
+
+
 def beat_measurements(data, record):
     time = np.asarray(data['time_axis'])
     clean = np.asarray(data['clean_wave_array'])
