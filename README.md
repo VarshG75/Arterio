@@ -1,77 +1,111 @@
 # ARTERIO — Vascular Screening
 
-A local vascular-screening research application for the Congressional App Challenge. Explore optical pulse waveforms and the anatomy behind the signal.
+ARTERIO is a research prototype that analyzes smartphone fingertip videos and provides an interactive heart atlas. It displays optical pulse waveforms, recording-quality information and estimated stiffness and reflection indices.
 
-Built together by Varsh G. and Shreyas. Varsh has led substantial UI work; Shreyas has made substantial contributions to the mathematical and signal-processing work. Both contribute to the shared project.
+## Features
 
-## Run on macOS
+- **Telemetry:** video upload, stable-section selection, pulse waveforms, annotated measurements and retake controls.
+- **Heart Explorer:** interactive 3D anatomy with selectable structures and source credits.
+- **Cohort Analytics:** an explicitly simulated dataset for exploring example trends.
+- **Clinical Docs:** physiology, recording guidance, methods and scientific references.
+- **Architecture:** an interactive processing flowchart and reproducible signal-processing benchmark.
 
-Verified with Python 3.14 on macOS. For a fresh checkout, run these setup commands from the project folder:
+## Requirements
 
-```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
+- Python **3.14** and pip. Enable Python on PATH when installing on Windows.
+- A recent browser.
+- Node.js is optional and only needed for the JavaScript navigation tests.
+
+The application has been tested on macOS with Python 3.14. Windows and Linux setup commands are provided below; those operating systems have not been independently tested.
+
+## Install and run
+
+Download or clone the repository and open a terminal in its root folder.
+
+### Windows — PowerShell
+
+These commands use the virtual environment directly, so PowerShell activation is not required.
+
+```powershell
+py -3.14 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m streamlit run app_and_ml/app.py --server.address 127.0.0.1 --server.port 8501 --browser.gatherUsageStats false
 ```
 
-Start the app from this folder in VS Code:
+If the Python launcher is unavailable, use `python -m venv .venv` after confirming that `python --version` reports Python 3.14.
+
+### macOS — Terminal
 
 ```sh
+python3.14 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python -m streamlit run app_and_ml/app.py --server.address 127.0.0.1 --server.port 8501 --browser.gatherUsageStats false
 ```
 
-Open http://127.0.0.1:8501. Stop with Control-C. An existing configured virtual environment can skip setup. Requirements select desktop OpenCV on macOS and headless OpenCV elsewhere; install only one OpenCV distribution.
+### Linux — terminal
 
-## Record and analyze a sample
+Install Python 3.14 with its pip and venv support using the instructions for your distribution. Then run:
 
-1. Rest the phone and your hand on a table. Use the rear camera with its video light **ON throughout**, rather than Auto or Off.
-2. Cover the lens and adjacent light with light, steady fingertip contact. Enable **AE/AF lock** if available to keep exposure and focus fixed. Stop if the phone or finger becomes uncomfortable.
-3. Record **20–25 seconds**, preferably at **1080p / 60 FPS**. 720p and 30 FPS are also supported. Upload the original MP4, MOV or AVI file.
-4. Confirm the recording checkbox and enter height in centimeters or feet and inches. Clicking Analyze without confirmation shows an orange-red reminder and does not process the video.
-5. Review the selected recording interval, waveform and beat inspector. Retake / replace video clears the upload and results for a fresh attempt.
+```sh
+python3.14 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m streamlit run app_and_ml/app.py --server.address 127.0.0.1 --server.port 8501 --browser.gatherUsageStats false
+```
 
-The first 2 seconds and final 1 second are removed. Stability checks can exclude further sections, including a longer settling period. Only the longest continuous section of at least 8 seconds reaches the filter; separate sections are never joined. Short uploads between 12 and 20 seconds require explicit approval, and those below 12 seconds are rejected. Missing measurements remain blank when the recording or beat checks fail.
+Open [http://127.0.0.1:8501](http://127.0.0.1:8501). Stop the server with **Ctrl+C**.
 
-The shared navigation wraps into centered rows on phones and tablets while retaining the pill design. Each page keeps its own scroll position while the site is open. Navigation updates the page URL, so refreshing keeps the selected page and replays its entrance from the top. Heart Explorer uses a black-and-white heart-logo reveal below the navigation. ARTERIO's black-and-cyan opening covers the full screen, including navigation. Clicking Telemetry plays that opening; clicking Cohort Analytics, Clinical Docs or Architecture opens the page directly. Refreshing any of those four pages still plays the ARTERIO opening. Click the ARTERIO name in the header to replay the current entrance. Each finishes automatically after 2.8 seconds; Escape dismisses it, and reduced-motion preferences bypass it. Changing an input on the current page does not replay the entrance. The solid atlas uses white tissue, grey coronary vessels and cyan selection.
+Requirements choose desktop OpenCV on macOS and headless OpenCV on Windows/Linux. Both can decode video; do not install both packages in the same environment. If port 8501 is occupied, use `--server.port 8502` and open the corresponding address. Google Fonts requires an internet connection; bundled heart assets and video processing are local to the app server.
 
-## Pages
+## Record a sample
 
-- Telemetry: record 1080p / 60 FPS for 20–25 seconds with the rear video light ON and light contact. Upload the original MP4/MOV/AVI and enter height in centimeters or feet and inches. Short clips require approval. Processing is capped at 25 seconds, removes the first 2 and last 1 seconds, then selects the longest section that passes stability checks before filtering. At least 8 continuous seconds must remain; separate sections are never joined. The timeline shows the selected section. Actual decoding progress and an annotated beat inspector explain the results. Telemetry controls and plots adapt to phone widths.
-- Heart Explorer: local WebGL/GLSL point cloud, sourced circulation chapter, rotatable BodyParts3D reference atlas, keyboard controls, and 28 selectable structures, including four source-mapped valve assemblies. The original procedural point cloud is preserved at the top. The scene fills the browser viewport and follows the website scroll. All portal rings have been removed. The included SVGs provide labeled internal-anatomy references with attribution.
-- Cohort Analytics: clearly labeled simulated observations.
-- Clinical Docs: physiology, acquisition methods, validation status and sources.
-- Architecture: an alternating left/right flowchart with rounded cyan connections, a scroll-driven progress dot, expandable engineering details, and a reproducible local DSP benchmark.
+1. Rest the phone and your hand on a table. Use the rear camera with its flash/video light **ON throughout**, rather than Auto or Off.
+2. Cover the lens and adjacent light with light fingertip contact. Enable **AE/AF lock**, if available, to keep exposure and focus fixed. Stop if the phone or finger becomes uncomfortable.
+3. Record **20–25 seconds**, preferably at **1080p / 60 FPS**. 720p and 30 FPS are also supported.
+4. Upload the original MP4, MOV or AVI file. Confirm the recording settings and enter height in centimeters or feet and inches.
+5. Review the waveform, selected interval and measurement details. Use **Retake / replace video** for another attempt.
 
-The heart uses JavaScript, HTML/CSS, WebGL and GLSL, with a Canvas 2D fallback. The dashboard and processing use Python, Streamlit, Plotly, NumPy, SciPy and OpenCV. The existing Google Fonts import requires internet; heart rendering and video processing use local resources.
+The first 2 seconds and final 1 second are trimmed. Stability checks then select the longest continuous usable section; at least 8 seconds must remain. Separate sections are never joined. Uploads under 12 seconds are rejected; uploads from 12 to under 20 seconds require explicit approval. Decoding is limited to a nominal 25-second segment. Measurements remain unavailable when the required checks fail.
 
-## Research status
+## Methods and limitations
 
-This app has no established diagnostic accuracy or validated risk thresholds. SI now uses entered height divided by secondary-landmark delay (m/s); RI is foot-referenced and expressed as a percentage. These replace the earlier dimensionless timing and amplitude ratios. Upsampling does not add captured temporal information. Smoothed APG derivatives and b/a candidates are available, but landmark accuracy and vascular-age inference are not validated.
+The pipeline uses full-frame mean red intensity, a 200 Hz PCHIP processing grid, Butterworth filtering in second-order sections, smoothed derivatives and pulse-feature detection. Resampling does not add information beyond the camera's captured frame rate.
 
-The existing `vascular_model.pkl` is a legacy artifact trained on synthetic variance targets and is never loaded by the live app. `train.py` now requires independent outcome labels and subject IDs; it refuses to manufacture clinical labels from SI. No replacement vascular-risk model has been trained because independent vascular-risk labels and verified dataset timing metadata are unavailable. The existing CSV has Normal/MI classification labels, which describe a different task; see [dataset source record](docs/DATASET_SOURCE.md). Original training code is preserved in `docs/reference/train-original.py` for provenance.
+Stiffness Index uses entered height divided by a secondary-feature delay, in m/s. Reflection Index compares secondary and primary amplitudes relative to the pulse foot, in percent. Their accuracy in this smartphone implementation has not been clinically established. The application does not diagnose disease, measure blood pressure or report validated risk categories.
 
-See [Architecture evidence](docs/ARCHITECTURE_EVIDENCE.md), [recording stability checks](docs/SIGNAL_QUALITY.md), [image/model license review](docs/ASSET_LICENSE_REVIEW.md), [website review](docs/SITE_REVIEW.md), [technical brief](docs/TECHNICAL_BRIEF.md), [application wording](docs/RESUME.md), [source record](docs/PROVENANCE.md), and [verification](docs/VERIFICATION.md).
+The saved `vascular_model.pkl` is a legacy artifact and is not loaded by the application. The training utility requires independently labeled features and subject identifiers. The included CSV is separate from the live video pipeline and the simulated Cohort page; see [dataset source](docs/DATASET_SOURCE.md).
 
-See [team integration decisions](docs/INTEGRATION.md) for the comparison with Shreyas’s changes.
+## Technical documentation
 
-See [project map](docs/PROJECT_MAP.md) for file responsibilities. Runtime comments were simplified; archived reference snapshots and the large dataset were preserved.
+- [Processing methods](docs/TECHNICAL_BRIEF.md)
+- [Recording quality and thresholds](docs/SIGNAL_QUALITY.md)
+- [Architecture evidence and benchmark scope](docs/ARCHITECTURE_EVIDENCE.md)
+- [Testing and validation scope](docs/VERIFICATION.md)
+- [Project structure](docs/PROJECT_MAP.md)
+- [Asset credits and licenses](docs/ASSET_CREDITS.md)
 
-## Checks
+## Run the checks
+
+**Windows — PowerShell:**
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+node --test tests/test_navigation.cjs
+```
+
+**macOS / Linux:**
 
 ```sh
 .venv/bin/python -m unittest discover -s tests -v
 node --test tests/test_navigation.cjs
 ```
 
-The final audit passes 47 Python tests and 6 navigation tests. Tests cover all five page routes, video decoding, quality gates, stable-window selection, height conversion, checkbox confirmation, input invalidation, plotted landmarks and asset integrity. Clean generated pulses across 40–160 BPM at 30/60 FPS check that slower pulses are not incorrectly discarded as motion.
+The tests cover numerical behavior, generated video inputs, recording-quality checks, upload state, page routing and asset integrity. They do not establish clinical accuracy. The Architecture benchmark measures selected-array processing separately from upload handling, decoding, stability selection and rendering.
 
-Three supplied MOVs were also checked locally: two pass the current software checks and one remains withheld for inconsistent beat timing. This is a small compatibility check, not clinical validation. The original videos and waveform arrays are not included in the repository. See [verification](docs/VERIFICATION.md) for scope and remaining limits.
+## License and development tools
 
-Architecture describes the implemented pipeline. Its measured DSP benchmark is separate from video decoding, capture checks and stability selection; the full processing wait is shown by Telemetry's progress timer. Benchmark inputs, raw timings and source hashes are in `app_and_ml/assets/architecture/benchmark.json`.
+Application code is available under the [MIT license](LICENSE). Anatomy models, reference diagrams and the dataset have separate source terms. Required third-party credits are retained alongside the assets and in the viewer.
 
-## Image and model credits
-
-Application code uses the [MIT license](LICENSE). The BodyParts3D atlas and reference diagrams have separate licenses and credits, retained in the viewer and alongside their files. The grayscale diagram adaptations are identified explicitly. See the [asset license review](docs/ASSET_LICENSE_REVIEW.md). Supplied reference photographs are not bundled.
-
-## Development tools
-
-Claude and Codex were used as coding assistants. The team reviews the implementation and tests changes with generated signals, video fixtures and interface checks. Shreyas’s work report documents earlier real-recording trials. Three additional original MOV recordings were checked locally during the stability revision; they are not bundled in this repository, and no independent clinical reference was available.
+Claude and Codex were used as coding assistants. We review the implementation and test changes with generated signals, video fixtures and interface checks.

@@ -1,6 +1,6 @@
 # Recording stability checks
 
-The full video and array entry points select a continuous section before interpolation or filtering. Shreyas's interval-consistency gate and the existing beat-template and secondary-landmark checks still run afterward. The filter, SI/RI formulas and derivative calculation are unchanged.
+The full video and array entry points select a continuous section before interpolation or filtering. Interval consistency, beat-template and secondary-landmark checks run afterward.
 
 ## Order of processing
 

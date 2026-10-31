@@ -66,11 +66,11 @@ class HeartAssetsTests(unittest.TestCase):
             self.assertGreater(len(record['source_elements']),0)
 
     def test_original_top_geometry_is_preserved_separately(self):
-        before = (ROOT / 'docs/reference/heart-before-anatomy-upgrade.html').read_text()
-        original = before[before.index('function meshData('):before.index('// Upload meshes once.')]
         current = (ASSETS / 'index.html').read_text()
-        without_comments = lambda text: re.sub(r'//[^\n]*', '', text)
-        self.assertIn(without_comments(original), without_comments(current))
+        geometry = current[current.index('function meshData('):current.index('return anatomy;')]
+        geometry = re.sub(r'//[^\n]*', '', geometry).strip()
+        self.assertEqual(hashlib.sha256(geometry.encode()).hexdigest(),
+                         '665a31cb325d7fa53bfcb6cf032272cfd8c3578b7a8145f7fa491e06c587a97d')
         self.assertIn('makePointCloud(topAnatomy,42000)', current)
         self.assertIn("decodeReferenceModel('__MODEL_BASE64__')", current)
 

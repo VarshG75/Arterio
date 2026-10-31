@@ -1,8 +1,5 @@
-"""Prepare source-mapped cardiac additions from verified BodyParts3D OBJ files.
-
-Input: /tmp/arterio-heart-obj downloaded from the official IS-A 99% archive.
-No source geometry is stretched. Vessel segments are clipped at a display boundary.
-"""
+"""Build cardiac atlas meshes from BodyParts3D OBJ files."""
+import argparse
 import base64
 import hashlib
 import json
@@ -11,7 +8,6 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = Path('/tmp/arterio-heart-obj')
 CENTER = np.array([21.5438, -113.22495, 1245.64])
 GROUPS = {
     'coronary-sinus': ('Coronary sinus', ['FJ2655'], False),
@@ -46,10 +42,7 @@ def read_obj(path):
 
 
 def clip_mesh(vertices, faces, bounds):
-    """Cut triangles at planes, weld seams and retain the main connected segment.
-
-    No caps or new anatomical shapes are introduced at truncated vessel ends.
-    """
+    """Clip triangles to the bounds and keep the largest connected segment."""
     result_v, result_f, lookup = [], [], {}
     for face in faces:
         polygon=[vertices[i] for i in face]
@@ -94,7 +87,7 @@ def encode(array, dtype):
     return base64.b64encode(np.asarray(array,dtype=dtype).tobytes()).decode()
 
 
-def main():
+def main(source_dir):
     data=[]
     manifest={'dataset':'BodyParts3D 4.0', 'archive':'isa_BP3D_4.0_obj_99.zip',
               'source':'https://dbarchive.biosciencedbc.jp/data/bodyparts3d/LATEST/isa_BP3D_4.0_obj_99.zip',
@@ -105,7 +98,7 @@ def main():
         all_v, all_f, records = [], [], []
         total=0
         for source_id in ids:
-            path=SOURCE/(source_id+'.obj')
+            path=source_dir/(source_id+'.obj')
             if not path.exists(): raise FileNotFoundError(path)
             v,f=read_obj(path)
             if not internal:
@@ -134,4 +127,8 @@ def main():
     manifest['runtime_sha256']=hashlib.sha256(payload.encode()).hexdigest()
     (out/'cardiac-extras-manifest.json').write_text(json.dumps(manifest,indent=2))
 
-if __name__=='__main__':main()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source-dir', type=Path, required=True,
+                        help='Directory containing the BodyParts3D OBJ source files.')
+    main(parser.parse_args().source_dir)

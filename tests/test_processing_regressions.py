@@ -10,7 +10,7 @@ from signal_processing.math_engine import assess_beat_intervals, process_trimmed
 from signal_processing.video_pipeline import mean_red_channel, extract_red_signal
 
 
-class TeamIntegrationTests(unittest.TestCase):
+class ProcessingRegressionTests(unittest.TestCase):
     def test_interval_consistency_and_supported_range(self):
         stable = assess_beat_intervals(np.arange(20) * 160)
         self.assertTrue(stable['timing_quality'])

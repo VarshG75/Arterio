@@ -220,3 +220,17 @@ __marimo__/
 *.MOV
 *.mp4
 .DS_Store
+
+# Personal workspace files and private documents
+.vscode/
+.private/
+private/
+docs/*INTEGRATION*.md
+docs/*_REVIEW.md
+docs/*RESUME*.md
+docs/*PROVENANCE*.md
+docs/reference/
+*Work Report*.pdf
+*.mov
+*.avi
+*.m4v

@@ -1,4 +1,4 @@
-# Architecture claim audit — October 26, 2026
+# Architecture evidence
 
 The Architecture page describes implemented software and local measurements. The evidence below does not establish clinical screening accuracy. The page's illustrative waveforms are drawn SVGs, not recordings.
 
@@ -30,13 +30,11 @@ The Architecture page describes implemented software and local measurements. The
 
 Implementation files are in `app_and_ml/signal_processing/` unless another path is stated. The tests listed above use generated inputs.
 
-## Corrected benchmark
+## Benchmark
 
-The earlier fixture contained 1,000 points at 200 Hz: about five seconds. It reached the numerical functions but retained only two repeatable segments, so it did not report SI/RI. It was not sufficient evidence of the completed reporting path.
+The benchmark fixture contains **1,000 already-trimmed generated input points at 60 Hz**, resampled to **3,330 points at 200 Hz**. It completes with status `OK`, 15 accepted segments and 15 secondary candidates. These are generated fixture results, not patient outcomes or counts from the CSV dataset.
 
-The current fixture contains **1,000 already-trimmed generated input points at 60 Hz**, resampled to **3,330 points at 200 Hz**. It completes with status `OK`, 15 accepted segments and 15 secondary candidates. These are generated fixture results, not patient outcomes or counts from the CSV dataset.
-
-On this Mac, after 20 warm-up executions, 200 timed executions measured **1.413 ms median / 1.520 ms P95**. The published card rounds P95 to **1.52 ms**. This refreshed run matches the final processing source hashes. The JSON records every duration, the UTC timestamp, Python/NumPy/SciPy versions, OS/machine details, fixture parameters, result status and SHA-256 hashes of processing code and the benchmark script.
+On the recorded Darwin arm64 machine, after 20 warm-up executions, 200 timed executions measured **1.413 ms median / 1.520 ms P95**. The published card rounds P95 to **1.52 ms**. The benchmark record includes processing source hashes. The JSON records every duration, the UTC timestamp, Python/NumPy/SciPy versions, OS/machine details, fixture parameters, result status and SHA-256 hashes of processing code and the benchmark script.
 
 Reproduce locally:
 
@@ -47,12 +45,6 @@ Reproduce locally:
 
 The benchmark includes PCHIP, filter design/execution, detrending, cycle/foot detection, derivatives, template comparison, ratios and interval checks. It excludes upload handling, video decoding, capture gates, stability selection, trimming and rendering. Timing changes with machine load and software; regenerating it replaces the checked-in measurement. Source-hash checks fail if the measured code changes without a refreshed benchmark.
 
-## Removed from the page
-
-The Implementation Notes footer, its two external links and the variable-definition sentence were removed as requested. Primary source links remain in this evidence record and Clinical Docs. Relevant symbols are defined within the stage details where needed.
-
-Final audit: the page documents the current pre-filter stability selection, brightness limits, 1-second exclusion margins, 8-second continuous minimum, height units and unchanged DSP/landmark formulas. The benchmark footer explicitly excludes stability selection. The 200 Hz card is labeled resampling rate; C¹ continuity is described separately. The 100 Hz Nyquist value refers to the processing grid, not captured camera bandwidth.
-
 ## Evidence still needed
 
-Independent real recordings are needed to evaluate device compatibility, reference heart-rate agreement, landmark accuracy and repeatability. The large CSV is unchanged. After the team supplied its Kaggle link, a bounded header/one-row inspection confirmed 2,000 waveform columns plus a Label column; the source describes Normal/MI classes. No age or timing field was found. Source metadata and the remaining verification gaps are recorded in [dataset source record](DATASET_SOURCE.md); the whole CSV was not scanned. The existing 800-row Cohort page remains explicitly simulated.
+Independent reference recordings are needed to evaluate device compatibility, heart-rate agreement, landmark accuracy and repeatability. The included CSV contains indexed waveform values and a classification label but lacks verified timing and subject metadata. See [dataset source](DATASET_SOURCE.md). The 800-row Cohort page is explicitly simulated.
